@@ -5,7 +5,6 @@ import {
   AlertTriangle,
   CircleCheck,
   Info,
-  Pencil,
   Plus,
   Trash,
   Eye,
@@ -22,6 +21,7 @@ import {
   taxRequirementsMet,
   ApproveContextMenuButton,
   EDITABLE_INVOICE_STATES,
+  DELETABLE_INVOICE_STATES,
   RejectModal,
   useApproveInvoices,
   useIsActionable,
@@ -181,12 +181,50 @@ export default function InvoicesPage() {
             </Link>
           </ContextMenuItem>
           <ContextMenuSeparator />
-          {/* eslint-disable-next-line no-console */}
-          <ContextMenuItem variant="destructive" onClick={() => console.log("Reject", "ID:", row.id)}>
-            <Trash className="size-4" />
-            Delete
+          <ContextMenuItem className="group" onClick={() => void 0}>
+            <Trash className="group-hover:text-destructive size-4" />
+            <span className="group-hover:text-destructive">Delete</span>
           </ContextMenuItem>
         </ContextMenuContent>
+      );
+    }
+
+    return null;
+  };
+
+  const selectionActions = (selectedRows: Invoice[]) => {
+    if (user.roles.worker) {
+      return (
+        <>
+          {selectedRows.length === 1 && selectedRows[0] && EDITABLE_INVOICE_STATES.includes(selectedRows[0].status) ? (
+            <Button variant="outline" size="small" asChild>
+              <Link href={`/invoices/${selectedRows[0].id}/edit`}>
+                <SquarePen className="size-4" />
+                Edit
+              </Link>
+            </Button>
+          ) : null}
+          {selectedRows.some((row) => DELETABLE_INVOICE_STATES.includes(row.status)) ? (
+            <Button variant="outline" size="small" onClick={() => void 0} className="group">
+              <Trash className="group-hover:text-destructive size-4" />
+            </Button>
+          ) : null}
+        </>
+      );
+    }
+
+    if (user.roles.administrator && selectedRows.some(isActionable)) {
+      return (
+        <>
+          <Button variant="outline" size="small" onClick={() => setOpenModal("reject")}>
+            <XCircle className="size-4" />
+            Reject
+          </Button>
+          <Button disabled={!company.completedPaymentMethodSetup} size="small" onClick={() => setOpenModal("approve")}>
+            <CheckCircle className="size-4" />
+            Approve
+          </Button>
+        </>
       );
     }
 
@@ -297,23 +335,6 @@ export default function InvoicesPage() {
                     </AlertDescription>
                   </Alert>
                 )}
-
-                {selectedApprovableInvoices.length > 0 && (
-                  <Alert className="fixed right-0 bottom-0 left-0 z-50 flex items-center justify-between rounded-none border-r-0 border-b-0 border-l-0">
-                    <div className="flex items-center gap-2">
-                      <Info className="size-4" />
-                      <AlertTitle>{selectedRows.length} selected</AlertTitle>
-                    </div>
-                    <div className="flex flex-row flex-wrap gap-3">
-                      <Button variant="outline" onClick={() => setOpenModal("reject")}>
-                        Reject selected
-                      </Button>
-                      <Button disabled={!company.completedPaymentMethodSetup} onClick={() => setOpenModal("approve")}>
-                        Approve selected
-                      </Button>
-                    </div>
-                  </Alert>
-                )}
               </>
             ) : null}
 
@@ -343,6 +364,7 @@ export default function InvoicesPage() {
                 ) : null
               }
               contextMenuContent={contextMenuContent}
+              selectionActions={selectionActions}
             />
           </>
         ) : (
