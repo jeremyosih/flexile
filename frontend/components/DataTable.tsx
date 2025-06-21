@@ -1,4 +1,4 @@
-import { ChevronDown, ChevronUp, ListFilterIcon, SearchIcon } from "lucide-react";
+import { ChevronDown, ChevronUp, ListFilterIcon, SearchIcon, X } from "lucide-react";
 import {
   type AccessorKeyColumnDef,
   type Column,
@@ -29,6 +29,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
+import { Separator } from "@/components/ui/separator";
 import {
   Table as ShadcnTable,
   TableBody,
@@ -46,6 +47,7 @@ import {
   ContextMenuSeparator,
   ContextMenuTrigger,
 } from "@/components/ui/context-menu";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/Tooltip";
 import { cn } from "@/utils";
 
 declare module "@tanstack/react-table" {
@@ -93,6 +95,7 @@ interface TableProps<T> {
   actions?: React.ReactNode;
   searchColumn?: string | undefined;
   contextMenuContent?: (row: T) => React.ReactNode;
+  selectionActions?: (selectedRows: T[]) => React.ReactNode;
 }
 
 export default function DataTable<T extends RowData>({
@@ -102,7 +105,19 @@ export default function DataTable<T extends RowData>({
   actions,
   searchColumn: searchColumnName,
   contextMenuContent,
+  selectionActions,
 }: TableProps<T>) {
+  React.useEffect(() => {
+    function handleKeyDown(event: KeyboardEvent) {
+      if (event.key === "Escape") {
+        table.toggleAllRowsSelected(false);
+      }
+    }
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [table]);
+
   const data = useMemo(
     () => ({
       headers: table
@@ -143,6 +158,8 @@ export default function DataTable<T extends RowData>({
   const searchColumn = searchColumnName ? table.getColumn(searchColumnName) : null;
   const getColumnName = (column: Column<T>) =>
     typeof column.columnDef.header === "string" ? column.columnDef.header : "";
+  const selectedRows = table.getSelectedRowModel().rows.map((row) => row.original);
+  const selectedRowCount = selectedRows.length;
 
   return (
     <div className="grid gap-4">
@@ -235,6 +252,30 @@ export default function DataTable<T extends RowData>({
                   )}
                 </DropdownMenuContent>
               </DropdownMenu>
+            ) : null}
+            {selectable && selectedRowCount > 0 ? (
+              <>
+                <div className="bg-accent border-muted flex h-9 items-center rounded-md border border-dashed px-2">
+                  <span className="text-sm whitespace-nowrap">{selectedRowCount} selected</span>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="-mr-1 size-6 p-0 hover:bg-transparent"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          table.toggleAllRowsSelected(false);
+                        }}
+                      >
+                        <X className="size-4 shrink-0" aria-hidden="true" />
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>Clear selection (Esc)</TooltipContent>
+                  </Tooltip>
+                </div>
+                {selectionActions?.(selectedRows)}
+              </>
             ) : null}
           </div>
           <div className="flex justify-between md:justify-end md:gap-2">{actions}</div>
