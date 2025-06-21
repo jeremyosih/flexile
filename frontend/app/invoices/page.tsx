@@ -351,7 +351,7 @@ export default function InvoicesPage() {
 
             <DataTable
               table={table}
-              onRowClicked={setDetailInvoice}
+              onRowClicked={ser.roles.administrator ? setDetailInvoice : undefined}
               searchColumn={user.roles.administrator ? "billFrom" : undefined}
               actions={
                 user.roles.administrator ? (
