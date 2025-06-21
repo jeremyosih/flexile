@@ -16,6 +16,7 @@ import { CheckCircle } from "lucide-react";
 
 type Invoice = RouterOutput["invoices"]["list"][number] | RouterOutput["invoices"]["get"];
 export const EDITABLE_INVOICE_STATES: Invoice["status"][] = ["received", "rejected"];
+export const DELETABLE_INVOICE_STATES: Invoice["status"][] = ["received", "approved"];
 
 export const useAreTaxRequirementsMet = () => {
   const company = useCurrentCompany();
