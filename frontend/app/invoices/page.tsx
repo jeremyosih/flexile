@@ -1,12 +1,25 @@
 "use client";
 
-import { Download, AlertTriangle, CircleCheck, Info, Pencil, Plus } from "lucide-react";
+import {
+  Download,
+  AlertTriangle,
+  CircleCheck,
+  Info,
+  Pencil,
+  Plus,
+  Trash,
+  Eye,
+  CheckCircle,
+  XCircle,
+  SquarePen,
+} from "lucide-react";
 import { getFilteredRowModel, getSortedRowModel } from "@tanstack/react-table";
 import Link from "next/link";
 import React, { Fragment, useEffect, useMemo, useState } from "react";
 import StripeMicrodepositVerification from "@/app/administrator/settings/StripeMicrodepositVerification";
 import {
   ApproveButton,
+  ApproveContextMenuButton,
   EDITABLE_INVOICE_STATES,
   RejectModal,
   useApproveInvoices,
@@ -47,6 +60,7 @@ import { linkClasses } from "@/components/Link";
 import DatePicker from "@/components/DatePicker";
 import { CalendarDate, today, getLocalTimeZone } from "@internationalized/date";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { ContextMenuContent, ContextMenuItem, ContextMenuSeparator } from "@/components/ui/context-menu";
 
 const statusNames = {
   received: "Awaiting approval",
@@ -121,31 +135,72 @@ export default function InvoicesPage() {
       }),
       columnHelper.accessor(isActionable, {
         id: "actions",
-        header: "Actions",
+        header: () => null,
         cell: (info) => {
           const invoice = info.row.original;
-          return (
-            <>
-              {invoice.contractor.user.id === user.id && EDITABLE_INVOICE_STATES.includes(invoice.status) ? (
-                <Link href={`/invoices/${invoice.id}/edit`} aria-label="Edit">
-                  <Pencil className="size-4" />
-                </Link>
-              ) : null}
-              {user.roles.administrator && isActionable(invoice) ? <ApproveButton invoice={invoice} /> : null}
-            </>
-          );
+          if (user.roles.administrator && isActionable(invoice)) {
+            return <ApproveButton invoice={invoice} />;
+          }
+          return null;
         },
       }),
     ],
     [],
   );
 
+  const contextMenuContent = (row: Invoice) => {
+    if (user.roles.administrator) {
+      return (
+        <ContextMenuContent>
+          <ContextMenuItem asChild>
+            <Link href={`/invoices/${row.id}`}>
+              <Eye className="size-4" />
+              View Invoice
+            </Link>
+          </ContextMenuItem>
+
+          {isActionable(row) ? (
+            <>
+              <ContextMenuSeparator />
+              <ApproveContextMenuButton invoice={row} onClick={() => setOpenModal("approve")} />
+              <ContextMenuItem onClick={() => setOpenModal("reject")}>
+                <XCircle className="size-4" />
+                Reject
+              </ContextMenuItem>
+            </>
+          ) : null}
+        </ContextMenuContent>
+      );
+    }
+
+    if (row.contractor.user.id === user.id && EDITABLE_INVOICE_STATES.includes(row.status)) {
+      return (
+        <ContextMenuContent>
+          <ContextMenuItem asChild>
+            <Link href={`/invoices/${row.id}/edit`}>
+              <SquarePen className="size-4" />
+              Edit
+            </Link>
+          </ContextMenuItem>
+          <ContextMenuSeparator />
+          {/* eslint-disable-next-line no-console */}
+          <ContextMenuItem variant="destructive" onClick={() => console.log("Reject", "ID:", row.id)}>
+            <Trash className="size-4" />
+            Delete
+          </ContextMenuItem>
+        </ContextMenuContent>
+      );
+    }
+
+    return null;
+  };
+
   const table = useTable({
     columns,
     data,
     getRowId: (invoice) => invoice.id,
     initialState: {
-      sorting: [{ id: user.roles.administrator ? "actions" : "invoiceDate", desc: true }],
+      sorting: [{ id: user.roles.administrator ? "status" : "invoiceDate", desc: true }],
     },
     getSortedRowModel: getSortedRowModel(),
     getFilteredRowModel: getFilteredRowModel(),
@@ -289,6 +344,7 @@ export default function InvoicesPage() {
                   </Button>
                 ) : null
               }
+              contextMenuContent={contextMenuContent}
             />
           </>
         ) : (
