@@ -39,6 +39,13 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import {
+  ContextMenu,
+  ContextMenuContent,
+  ContextMenuItem,
+  ContextMenuSeparator,
+  ContextMenuTrigger,
+} from "@/components/ui/context-menu";
 import { cn } from "@/utils";
 
 declare module "@tanstack/react-table" {
@@ -85,6 +92,7 @@ interface TableProps<T> {
   onRowClicked?: ((row: T) => void) | undefined;
   actions?: React.ReactNode;
   searchColumn?: string | undefined;
+  contextMenuContent?: (row: T) => React.ReactNode;
 }
 
 export default function DataTable<T extends RowData>({
@@ -93,6 +101,7 @@ export default function DataTable<T extends RowData>({
   onRowClicked,
   actions,
   searchColumn: searchColumnName,
+  contextMenuContent,
 }: TableProps<T>) {
   const data = useMemo(
     () => ({
@@ -271,40 +280,51 @@ export default function DataTable<T extends RowData>({
         </TableHeader>
         <TableBody className="not-print:max-md:contents">
           {data.rows.length > 0 ? (
-            data.rows.map((row) => (
-              <TableRow
-                key={row.id}
-                className={rowClasses}
-                data-state={row.getIsSelected() ? "selected" : undefined}
-                onClick={() => onRowClicked?.(row.original)}
-              >
-                {selectable ? (
-                  <TableCell className={cellClasses(null)} onClick={(e) => e.stopPropagation()}>
-                    <Checkbox
-                      checked={row.getIsSelected()}
-                      aria-label="Select row"
-                      disabled={!row.getCanSelect()}
-                      onCheckedChange={row.getToggleSelectedHandler()}
-                      className="relative z-1"
-                    />
-                  </TableCell>
-                ) : null}
-                {row.getVisibleCells().map((cell) => (
-                  <TableCell
-                    key={cell.id}
-                    className={`${cellClasses(cell.column)} ${cell.column.id === "actions" ? "relative z-1 md:text-right print:hidden" : ""}`}
-                    onClick={(e) => cell.column.id === "actions" && e.stopPropagation()}
-                  >
-                    {typeof cell.column.columnDef.header === "string" && (
-                      <div className="text-gray-500 md:hidden print:hidden" aria-hidden>
-                        {cell.column.columnDef.header}
-                      </div>
-                    )}
-                    {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                  </TableCell>
-                ))}
-              </TableRow>
-            ))
+            data.rows.map((row) => {
+              const rowContent = (
+                <TableRow
+                  key={row.id}
+                  className={rowClasses}
+                  data-state={row.getIsSelected() ? "selected" : undefined}
+                  onClick={() => onRowClicked?.(row.original)}
+                >
+                  {selectable ? (
+                    <TableCell className={cellClasses(null)} onClick={(e) => e.stopPropagation()}>
+                      <Checkbox
+                        checked={row.getIsSelected()}
+                        aria-label="Select row"
+                        disabled={!row.getCanSelect()}
+                        onCheckedChange={row.getToggleSelectedHandler()}
+                        className="relative z-1"
+                      />
+                    </TableCell>
+                  ) : null}
+                  {row.getVisibleCells().map((cell) => (
+                    <TableCell
+                      key={cell.id}
+                      className={`${cellClasses(cell.column)} ${cell.column.id === "actions" ? "relative z-1 md:text-right print:hidden" : ""}`}
+                      onClick={(e) => cell.column.id === "actions" && e.stopPropagation()}
+                    >
+                      {typeof cell.column.columnDef.header === "string" && (
+                        <div className="text-gray-500 md:hidden print:hidden" aria-hidden>
+                          {cell.column.columnDef.header}
+                        </div>
+                      )}
+                      {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                    </TableCell>
+                  ))}
+                </TableRow>
+              );
+
+              return contextMenuContent?.(row.original) ? (
+                <ContextMenu key={row.id}>
+                  <ContextMenuTrigger asChild>{rowContent}</ContextMenuTrigger>
+                  {contextMenuContent(row.original)}
+                </ContextMenu>
+              ) : (
+                rowContent
+              );
+            })
           ) : (
             <TableRow className="h-24">
               <TableCell colSpan={table.getAllColumns().length} className="text-center align-middle">

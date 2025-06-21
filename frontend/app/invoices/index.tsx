@@ -11,6 +11,8 @@ import type { RouterOutput } from "@/trpc";
 import { trpc } from "@/trpc/client";
 import { request } from "@/utils/request";
 import { approve_company_invoices_path, reject_company_invoices_path } from "@/utils/routes";
+import { ContextMenuItem } from "@/components/ui/context-menu";
+import { CheckCircle } from "lucide-react";
 
 type Invoice = RouterOutput["invoices"]["list"][number] | RouterOutput["invoices"]["get"];
 export const EDITABLE_INVOICE_STATES: Invoice["status"][] = ["received", "rejected"];
@@ -149,6 +151,30 @@ export const ApproveButton = ({ invoice, onApprove }: { invoice: Invoice; onAppr
         "Approve"
       )}
     </MutationButton>
+  );
+};
+
+export const ApproveContextMenuButton = ({ invoice, onClick }: { invoice: Invoice; onClick: () => void }) => {
+  const company = useCurrentCompany();
+  const taxRequirementsMet = useAreTaxRequirementsMet();
+  const pay = useIsPayable()(invoice);
+
+  return (
+    <ContextMenuItem
+      disabled={!!pay && (!company.completedPaymentMethodSetup || !taxRequirementsMet(invoice))}
+      onClick={onClick}
+    >
+      {pay ? (
+        <>
+          <CurrencyDollarIcon className="size-4" /> Pay now
+        </>
+      ) : (
+        <>
+          <CheckCircle className="size-4" />
+          Approve
+        </>
+      )}
+    </ContextMenuItem>
   );
 };
 
