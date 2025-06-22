@@ -99,6 +99,16 @@ class Internal::Companies::InvoicesController < Internal::Companies::BaseControl
     ).perform
   end
 
+  def destroy
+    authorize Invoice
+
+    DeleteManyInvoices.new(
+      company: Current.company,
+      deleted_by: Current.user,
+      invoice_ids: invoice_external_ids_for_deletion,
+    ).perform
+  end
+
   private
     def load_invoice!
       @invoice = Current.user.invoices.find_by!(external_id: params[:id])
@@ -123,6 +133,20 @@ class Internal::Companies::InvoicesController < Internal::Companies::BaseControl
       unless all_invoices_belong_to_company
         e404
       end
+    end
+
+    def authorize_invoices_for_deletion
+      all_invoices_belong_to_user = invoice_external_ids_for_deletion.all? do |invoice_external_id|
+        Current.user.invoices.exists?(external_id: invoice_external_id)
+      end
+
+      unless all_invoices_belong_to_user
+        e404
+      end
+    end
+
+    def invoice_external_ids_for_deletion
+      params.require(:ids)
     end
 
     def invoice_external_ids_for_rejection
