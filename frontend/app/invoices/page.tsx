@@ -147,7 +147,7 @@ export default function InvoicesPage() {
         },
       }),
     ],
-    [],
+    [user.roles.administrator, data, isActionable],
   );
 
   const contextMenuContent = ({
@@ -469,7 +469,7 @@ export default function InvoicesPage() {
           )}
           <Card>
             <CardContent>
-              {selectedInvoices.slice(0, 5).map((invoice, index, array) => (
+              {selectedApprovableInvoices.slice(0, 5).map((invoice, index, array) => (
                 <Fragment key={invoice.id}>
                   <div className="flex justify-between gap-2">
                     <b>{invoice.billFrom}</b>
@@ -480,7 +480,7 @@ export default function InvoicesPage() {
               ))}
             </CardContent>
           </Card>
-          {selectedInvoices.length > 6 && <div>and {data.length - 6} more</div>}
+          {selectedApprovableInvoices.length > 5 && <div>and {selectedApprovableInvoices.length - 5} more</div>}
           <DialogFooter>
             <Button variant="outline" onClick={() => setOpenModal(null)}>
               No, cancel
