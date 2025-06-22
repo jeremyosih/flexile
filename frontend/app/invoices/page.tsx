@@ -26,7 +26,6 @@ import {
   useAreTaxRequirementsMet,
   useIsActionable,
   useIsPayable,
-  useDeleteInvoices,
   DeleteModal,
 } from "@/app/invoices/index";
 import { StatusWithTooltip } from "@/app/invoices/Status";
@@ -95,11 +94,6 @@ export default function InvoicesPage() {
     table.resetRowSelection();
   });
 
-  const deleteInvoices = useDeleteInvoices(() => {
-    setOpenModal(null);
-    table.resetRowSelection();
-  });
-
   const columnHelper = createColumnHelper<(typeof data)[number]>();
   const columns = useMemo(
     () => [
@@ -130,6 +124,7 @@ export default function InvoicesPage() {
         "numeric",
       ),
       columnHelper.accessor((row) => statusNames[row.status], {
+        id: "status",
         header: "Status",
         cell: (info) => (
           <div className="relative z-1">
@@ -165,6 +160,7 @@ export default function InvoicesPage() {
     selectedCount: number;
   }) => {
     const isGroupAction = selectedCount > 1;
+    const isSingleAction = selectedCount === 0 || (selectedCount === 1 && isSelected);
 
     if (selectedCount > 0 && !isSelected) {
       return (
@@ -180,7 +176,7 @@ export default function InvoicesPage() {
     if (user.roles.administrator) {
       return (
         <ContextMenuContent>
-          {!isGroupAction ? (
+          {isSingleAction ? (
             <ContextMenuItem asChild>
               <Link href={`/invoices/${row.id}`}>
                 <Eye className="size-4" />
@@ -191,8 +187,16 @@ export default function InvoicesPage() {
 
           {isActionable(row) ? (
             <>
-              {!isGroupAction ? <ContextMenuSeparator /> : null}
-              <ContextMenuItem onClick={() => setOpenModal("approve")}>
+              {isSingleAction ? <ContextMenuSeparator /> : null}
+              <ContextMenuItem
+                onClick={() => {
+                  if (isSingleAction) {
+                    setDetailInvoice(row);
+                  } else {
+                    setOpenModal("approve");
+                  }
+                }}
+              >
                 <CheckCircle className="size-4" />
                 Approve
               </ContextMenuItem>
@@ -233,7 +237,16 @@ export default function InvoicesPage() {
 
           {!isGroupAction && isEditable && isDeletable ? <ContextMenuSeparator /> : null}
           {isDeletable ? (
-            <ContextMenuItem className="group" onClick={() => setOpenModal("delete")}>
+            <ContextMenuItem
+              className="group"
+              onClick={() => {
+                table.setRowSelection((prev) => ({
+                  ...prev,
+                  [row.id]: true,
+                }));
+                setOpenModal("delete");
+              }}
+            >
               <Trash className="group-hover:text-destructive size-4" />
               <span className="group-hover:text-destructive">Delete</span>
             </ContextMenuItem>
@@ -242,7 +255,14 @@ export default function InvoicesPage() {
       );
     }
 
-    return null;
+    return (
+      <ContextMenuContent>
+        <ContextMenuItem onClick={() => table.toggleAllRowsSelected(false)}>
+          <X className="size-4" />
+          Clear selection (Esc)
+        </ContextMenuItem>
+      </ContextMenuContent>
+    );
   };
 
   const selectionActions = (selectedRows: Invoice[]) => {
@@ -294,7 +314,7 @@ export default function InvoicesPage() {
     data,
     getRowId: (invoice) => invoice.id,
     initialState: {
-      sorting: [{ id: user.roles.administrator ? "status" : "invoiceDate", desc: true }],
+      sorting: [{ id: user.roles.administrator ? "status" : "invoiceDate", desc: !user.roles.administrator }],
     },
     getSortedRowModel: getSortedRowModel(),
     getFilteredRowModel: getFilteredRowModel(),
@@ -494,11 +514,14 @@ export default function InvoicesPage() {
             setDetailInvoice(null);
           }
         }}
-        ids={detailInvoice ? [detailInvoice.id] : selectedInvoices.map((invoice) => invoice.id)}
+        ids={detailInvoice ? [detailInvoice.id] : selectedInvoices.filter(isActionable).map((invoice) => invoice.id)}
       />
       <DeleteModal
         open={openModal === "delete"}
-        onClose={() => setOpenModal(null)}
+        onClose={() => {
+          setOpenModal(null);
+          table.resetRowSelection();
+        }}
         onDelete={() => {
           setOpenModal(null);
           table.resetRowSelection();

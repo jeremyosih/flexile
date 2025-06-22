@@ -365,7 +365,7 @@ export default function DataTable<T extends RowData>({
               });
 
               return menuContent ? (
-                <ContextMenu key={row.id}>
+                <ContextMenu key={row.id} modal={false}>
                   <ContextMenuTrigger asChild>{rowContent}</ContextMenuTrigger>
                   {menuContent}
                 </ContextMenu>

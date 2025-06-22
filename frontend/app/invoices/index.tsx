@@ -197,10 +197,12 @@ export const RejectModal = ({
     <Dialog open={open} onOpenChange={onClose}>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Reject invoice?</DialogTitle>
+          <DialogTitle>Reject {ids.length > 1 ? `${ids.length} invoices` : "invoice"}?</DialogTitle>
         </DialogHeader>
         <div className="grid gap-2">
-          <Label htmlFor="reject-reason">Explain why the invoice was rejected and how to fix it (optional)</Label>
+          <Label htmlFor="reject-reason">
+            Explain why the {ids.length > 1 ? "invoices were" : "invoice was"} rejected and how to fix it (optional)
+          </Label>
           <Textarea
             id="reject-reason"
             value={reason}
@@ -261,8 +263,7 @@ export const DeleteModal = ({
     onDelete?.();
     onClose();
   });
-  // eslint-disable-next-line no-console
-  console.log("invoiceNumberText", invoiceNumberText);
+
   return (
     <Dialog open={open} onOpenChange={onClose}>
       <DialogContent>
