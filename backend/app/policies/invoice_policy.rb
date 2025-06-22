@@ -42,8 +42,6 @@ class InvoicePolicy < ApplicationPolicy
   end
 
   def destroy?
-    company_worker.present? &&
-      record.user_id == user.id &&
-      Invoice::DELETABLE_STATES.include?(record.status)
+    company_worker.present?
   end
 end
