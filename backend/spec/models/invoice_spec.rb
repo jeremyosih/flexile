@@ -94,6 +94,44 @@ RSpec.describe Invoice do
       expect(invoice).to be_invalid
       expect(invoice.errors.full_messages).to eq(["Total amount in USD cents must equal the sum of cash and equity amounts"])
     end
+  end
+
+  describe "callbacks" do
+    describe "on delete" do
+      let(:invoice) { create(:invoice) }
+      
+      before do
+        create_list(:invoice_approval, 2, invoice:)
+        create(:invoice_line_item, invoice:)
+        create(:invoice_expense, invoice:)
+      end
+
+      it "allows model-level deletion without cascading dependent records" do
+        expect do
+          invoice.destroy!
+        end.to change { Invoice.count }.by(-1)
+           .and change { InvoiceApproval.count }.by(0)
+           .and change { InvoiceLineItem.count }.by(0)
+           .and change { InvoiceExpense.count }.by(0)
+      end
+    end
+  end
+
+  describe "deletion" do
+    it "allows deletion of RECEIVED invoices" do
+      invoice = create(:invoice, status: Invoice::RECEIVED)
+      expect { invoice.destroy! }.not_to raise_error
+    end
+
+    it "allows deletion of APPROVED invoices" do
+      invoice = create(:invoice, status: Invoice::APPROVED)
+      expect { invoice.destroy! }.not_to raise_error
+    end
+
+    it "allows deletion regardless of status at model level" do
+      invoice = create(:invoice, status: Invoice::PAID)
+      expect { invoice.destroy! }.not_to raise_error
+    end
 
     describe "allowed equity percentage range" do
       it "ensures that min allowed equity percentage is less than or equal to max allowed equity percentage" do
@@ -1186,4 +1224,5 @@ RSpec.describe Invoice do
       expect(build(:invoice, total_amount_in_usd_cents: 10_000_00).calculate_flexile_fee_cents).to eq 15_00
     end
   end
+
 end
