@@ -10,9 +10,7 @@ import { useCurrentCompany, useCurrentUser } from "@/global";
 import type { RouterOutput } from "@/trpc";
 import { trpc } from "@/trpc/client";
 import { request } from "@/utils/request";
-import { approve_company_invoices_path, reject_company_invoices_path } from "@/utils/routes";
-import { ContextMenuItem } from "@/components/ui/context-menu";
-import { CheckCircle } from "lucide-react";
+import { approve_company_invoices_path, reject_company_invoices_path, company_invoices_path } from "@/utils/routes";
 
 type Invoice = RouterOutput["invoices"]["list"][number] | RouterOutput["invoices"]["get"];
 export const EDITABLE_INVOICE_STATES: Invoice["status"][] = ["received", "rejected"];
@@ -217,6 +215,29 @@ export const RejectModal = ({
   );
 };
 
+export const useDeleteInvoices = (onSuccess?: () => void) => {
+  const utils = trpc.useUtils();
+  const company = useCurrentCompany();
+
+  return useMutation({
+    mutationFn: async (params: { ids: string[] }) => {
+      await request({
+        method: "DELETE",
+        url: company_invoices_path(company.id),
+        accept: "json",
+        jsonData: params,
+        assertOk: true,
+      });
+    },
+    onSuccess: () => {
+      setTimeout(() => {
+        void utils.invoices.list.invalidate({ companyId: company.id });
+        onSuccess?.();
+      }, 500);
+    },
+  });
+};
+
 export const DeleteModal = ({
   open,
   ids,
@@ -231,6 +252,10 @@ export const DeleteModal = ({
   onDelete?: () => void;
 }) => {
   const invoiceNumberText = invoiceNumber || "";
+  const deleteInvoices = useDeleteInvoices(() => {
+    onDelete?.();
+    onClose();
+  });
   // eslint-disable-next-line no-console
   console.log("invoiceNumberText", invoiceNumberText);
   return (
@@ -252,9 +277,9 @@ export const DeleteModal = ({
           <Button variant="outline" onClick={onClose}>
             Cancel
           </Button>
-          <Button variant="critical" onClick={onDelete}>
+          <MutationButton mutation={deleteInvoices} param={{ ids }} loadingText="Deleting...">
             Delete
-          </Button>
+          </MutationButton>
         </DialogFooter>
       </DialogContent>
     </Dialog>

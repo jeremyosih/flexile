@@ -27,6 +27,7 @@ import {
   useApproveInvoices,
   useIsActionable,
   useIsPayable,
+  useDeleteInvoices,
   DeleteModal,
 } from "@/app/invoices/index";
 import { StatusWithTooltip } from "@/app/invoices/Status";
@@ -90,6 +91,11 @@ export default function InvoicesPage() {
   const { canSubmitInvoices, hasLegalDetails, unsignedContractId } = useCanSubmitInvoices();
 
   const approveInvoices = useApproveInvoices(() => {
+    setOpenModal(null);
+    table.resetRowSelection();
+  });
+
+  const deleteInvoices = useDeleteInvoices(() => {
     setOpenModal(null);
     table.resetRowSelection();
   });
@@ -492,13 +498,10 @@ export default function InvoicesPage() {
       <DeleteModal
         open={openModal === "delete"}
         onClose={() => setOpenModal(null)}
-        onDelete={() =>
-          // eslint-disable-next-line no-console
-          console.log(
-            "Submitting delete mutation",
-            selectedInvoices.map((invoice) => invoice.id),
-          )
-        }
+        onDelete={() => {
+          setOpenModal(null);
+          table.resetRowSelection();
+        }}
         ids={selectedDeletableInvoices.map((invoice) => invoice.id)}
         invoiceNumber={selectedDeletableInvoices.length === 1 ? selectedDeletableInvoices[0]?.invoiceNumber : undefined}
       />

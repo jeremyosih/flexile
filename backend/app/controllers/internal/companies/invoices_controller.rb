@@ -101,6 +101,7 @@ class Internal::Companies::InvoicesController < Internal::Companies::BaseControl
 
   def destroy
     authorize Invoice
+    authorize_invoices_for_deletion
 
     DeleteManyInvoices.new(
       company: Current.company,
