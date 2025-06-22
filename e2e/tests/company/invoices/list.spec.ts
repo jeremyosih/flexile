@@ -23,15 +23,15 @@ type CompanyContractorWithUser = CompanyContractor & {
   user: User;
 };
 
-test.describe("Invoices admin flow", () => {
-  const setupCompany = async ({ trusted = true }: { trusted?: boolean } = {}) => {
-    const { company } = await companiesFactory.create({ isTrusted: trusted, requiredInvoiceApprovalCount: 2 });
-    const { administrator } = await companyAdministratorsFactory.create({ companyId: company.id });
-    const user = await db.query.users.findFirst({ where: eq(users.id, administrator.userId) });
-    assert(user !== undefined);
-    return { company, user };
-  };
+const setupCompany = async ({ trusted = true }: { trusted?: boolean } = {}) => {
+  const { company } = await companiesFactory.create({ isTrusted: trusted, requiredInvoiceApprovalCount: 2 });
+  const { administrator } = await companyAdministratorsFactory.create({ companyId: company.id });
+  const user = await db.query.users.findFirst({ where: eq(users.id, administrator.userId) });
+  assert(user !== undefined);
+  return { company, user };
+};
 
+test.describe("Invoices admin flow", () => {
   const countInvoiceApprovals = async (companyId: bigint) => {
     const result = await db
       .select({ count: sql`count(*)` })
@@ -347,14 +347,6 @@ test.describe("Invoices admin flow", () => {
 });
 
 test.describe("Invoices contractor flow", () => {
-  const setupCompany = async ({ trusted = true }: { trusted?: boolean } = {}) => {
-    const { company } = await companiesFactory.create({ isTrusted: trusted, requiredInvoiceApprovalCount: 2 });
-    const { administrator } = await companyAdministratorsFactory.create({ companyId: company.id });
-    const user = await db.query.users.findFirst({ where: eq(users.id, administrator.userId) });
-    assert(user !== undefined);
-    return { company, user };
-  };
-
   const setupCompanyAndContractor = async (isProjectBased = false) => {
     const { company, user: adminUser } = await setupCompany();
     const { companyContractor } = isProjectBased
