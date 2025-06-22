@@ -28,6 +28,12 @@ RSpec.describe DeleteManyInvoices do
         expect(DeleteInvoice).to receive(:new).with(invoice: invoice2, deleted_by: deleted_by).and_call_original
         service.perform
       end
+
+      it "deletes associated records" do
+        expect { service.perform }.to change { InvoiceApproval.count }.by(-2)
+          .and change { InvoiceLineItem.count }.by(-3)
+          .and change { InvoiceExpense.count }.by(-1)
+      end
     end
 
     describe "validation" do
@@ -49,7 +55,11 @@ RSpec.describe DeleteManyInvoices do
 
         it "does not delete any invoices" do
           invoice1
-          expect { service.perform rescue nil }.not_to change { Invoice.count }
+          expect do
+            service.perform
+          rescue ActiveRecord::RecordNotFound
+            # Expected exception
+          end.not_to change { Invoice.count }
         end
       end
 

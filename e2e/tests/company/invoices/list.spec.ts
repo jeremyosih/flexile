@@ -23,7 +23,6 @@ type CompanyContractorWithUser = CompanyContractor & {
   user: User;
 };
 
-
 test.describe("Invoices admin flow", () => {
   const setupCompany = async ({ trusted = true }: { trusted?: boolean } = {}) => {
     const { company } = await companiesFactory.create({ isTrusted: trusted, requiredInvoiceApprovalCount: 2 });
@@ -39,7 +38,7 @@ test.describe("Invoices admin flow", () => {
       .from(invoiceApprovals)
       .innerJoin(invoices, eq(invoiceApprovals.invoiceId, invoices.id))
       .where(eq(invoices.companyId, companyId));
-    
+
     return Number(result[0]?.count || 0);
   };
 

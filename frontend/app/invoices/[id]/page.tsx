@@ -112,7 +112,7 @@ export default function InvoicePage() {
             invoice.requiresAcceptanceByPayee ? (
               <Button onClick={() => setAcceptPaymentModalOpen(true)}>Accept payment</Button>
             ) : (
-              <Button asChild>
+              <Button variant="default" asChild>
                 <Link href={`/invoices/${invoice.id}/edit`}>
                   {invoice.status !== "rejected" && <PencilIcon className="h-4 w-4" />}
                   {invoice.status === "rejected" ? "Submit again" : "Edit invoice"}

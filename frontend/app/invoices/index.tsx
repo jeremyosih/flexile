@@ -268,17 +268,17 @@ export const DeleteModal = ({
           </DialogTitle>
         </DialogHeader>
         <div className="grid gap-2">
-          <Label htmlFor="delete-warning">
+          <p className="text-sm">
             {ids.length > 1
               ? "These invoices will be cancelled and permanently deleted. They won't be payable or recoverable."
               : `This invoice will be cancelled and permanently deleted. It won't be payable or recoverable.`}
-          </Label>
+          </p>
         </div>
         <DialogFooter>
           <Button variant="outline" onClick={onClose}>
             Cancel
           </Button>
-          <MutationButton mutation={deleteInvoices} param={{ ids }} loadingText="Deleting...">
+          <MutationButton idleVariant="critical" mutation={deleteInvoices} param={{ ids }} loadingText="Deleting...">
             Delete
           </MutationButton>
         </DialogFooter>
