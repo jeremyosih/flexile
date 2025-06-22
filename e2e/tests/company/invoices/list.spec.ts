@@ -17,7 +17,10 @@ import { usersFactory } from "@test/factories/users";
 type User = Awaited<ReturnType<typeof usersFactory.create>>["user"];
 type Company = Awaited<ReturnType<typeof companiesFactory.create>>["company"];
 type CompanyContractor = Awaited<ReturnType<typeof companyContractorsFactory.create>>["companyContractor"];
-type CompanyContractorWithUser = CompanyContractor & { user: User };
+type CompanyContractorWithUser = CompanyContractor & {
+  user: User;
+};
+type Invoice = Awaited<ReturnType<typeof invoicesFactory.create>>["invoice"];
 
 test.describe("Invoices admin flow", () => {
   const setupCompany = async ({ trusted = true }: { trusted?: boolean } = {}) => {
@@ -27,6 +30,15 @@ test.describe("Invoices admin flow", () => {
     assert(user !== undefined);
     return { company, user };
   };
+
+  const countInvoiceApprovals = (companyId: bigint) =>
+    db.$count(
+      db
+        .select()
+        .from(invoiceApprovals)
+        .innerJoin(invoices, eq(invoiceApprovals.invoiceId, invoices.id))
+        .where(eq(invoices.companyId, companyId)),
+    );
 
   test("allows searching invoices by contractor name", async ({ page }) => {
     const { company, user: adminUser } = await setupCompany();
