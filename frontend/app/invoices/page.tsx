@@ -185,7 +185,6 @@ export default function InvoicesPage() {
           {isActionable(row) ? (
             <>
               {!isGroupAction ? <ContextMenuSeparator /> : null}
-              {/* <ApproveContextMenuButton invoice={row} onClick={() => setOpenModal("approve")} /> */}
               <ContextMenuItem onClick={() => setOpenModal("approve")}>
                 <CheckCircle className="size-4" />
                 Approve
@@ -300,6 +299,9 @@ export default function InvoicesPage() {
   const selectedInvoices = selectedRows.map((row) => row.original);
   const selectedApprovableInvoices = selectedInvoices.filter(isActionable);
   const selectedPayableInvoices = selectedApprovableInvoices.filter(isPayable);
+  const selectedDeletableInvoices = selectedInvoices.filter((invoice) =>
+    DELETABLE_INVOICE_STATES.includes(invoice.status),
+  );
 
   const workerNotice = !user.roles.worker ? null : !hasLegalDetails ? (
     <>
@@ -497,8 +499,8 @@ export default function InvoicesPage() {
             selectedInvoices.map((invoice) => invoice.id),
           )
         }
-        ids={selectedInvoices.map((invoice) => invoice.id)}
-        invoiceNumber={selectedInvoices.length === 1 ? selectedInvoices[0]?.invoiceNumber : undefined}
+        ids={selectedDeletableInvoices.map((invoice) => invoice.id)}
+        invoiceNumber={selectedDeletableInvoices.length === 1 ? selectedDeletableInvoices[0]?.invoiceNumber : undefined}
       />
     </MainLayout>
   );
