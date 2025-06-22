@@ -245,3 +245,47 @@ export const RejectModal = ({
     </Dialog>
   );
 };
+
+export const DeleteModal = ({
+  open,
+  ids,
+  invoiceNumber,
+  onClose,
+  onDelete,
+}: {
+  open: boolean;
+  ids: string[];
+  invoiceNumber?: string | undefined;
+  onClose: () => void;
+  onDelete?: () => void;
+}) => {
+  const invoiceNumberText = invoiceNumber || "";
+  // eslint-disable-next-line no-console
+  console.log("invoiceNumberText", invoiceNumberText);
+  return (
+    <Dialog open={open} onOpenChange={onClose}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>
+            Delete {ids.length > 1 ? `${ids.length} invoices` : `invoice "${invoiceNumberText}"`}?
+          </DialogTitle>
+        </DialogHeader>
+        <div className="grid gap-2">
+          <Label htmlFor="delete-warning">
+            {ids.length > 1
+              ? "These invoices will be cancelled and permanently deleted. They won't be payable or recoverable."
+              : `This invoice will be cancelled and permanently deleted. It won't be payable or recoverable.`}
+          </Label>
+        </div>
+        <DialogFooter>
+          <Button variant="outline" onClick={onClose}>
+            Cancel
+          </Button>
+          <Button variant="critical" onClick={onDelete}>
+            Delete
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+};
