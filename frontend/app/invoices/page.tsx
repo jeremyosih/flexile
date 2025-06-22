@@ -278,7 +278,13 @@ export default function InvoicesPage() {
             </Button>
           ) : null}
           {selectedRows.some((row) => DELETABLE_INVOICE_STATES.includes(row.status)) ? (
-            <Button variant="outline" size="small" onClick={() => setOpenModal("delete")} className="group">
+            <Button
+              variant="outline"
+              size="small"
+              onClick={() => setOpenModal("delete")}
+              className="group"
+              aria-label="Delete selected invoices"
+            >
               <Trash className="group-hover:text-destructive size-4" />
             </Button>
           ) : null}
@@ -289,7 +295,12 @@ export default function InvoicesPage() {
     if (user.roles.administrator && selectedRows.some(isActionable)) {
       return (
         <>
-          <Button variant="outline" size="small" onClick={() => setOpenModal("reject")}>
+          <Button
+            variant="outline"
+            size="small"
+            onClick={() => setOpenModal("reject")}
+            aria-label="Reject selected invoices"
+          >
             <XCircle className="size-4" />
             Reject
           </Button>
@@ -298,6 +309,7 @@ export default function InvoicesPage() {
             disabled={!company.completedPaymentMethodSetup}
             size="small"
             onClick={() => setOpenModal("approve")}
+            aria-label="Approve selected invoices"
           >
             <CheckCircle className="size-4" />
             Approve
