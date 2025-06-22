@@ -11,6 +11,7 @@ import {
   CheckCircle,
   XCircle,
   SquarePen,
+  X,
 } from "lucide-react";
 import { getFilteredRowModel, getSortedRowModel } from "@tanstack/react-table";
 import Link from "next/link";
@@ -26,6 +27,7 @@ import {
   useApproveInvoices,
   useIsActionable,
   useIsPayable,
+  DeleteModal,
 } from "@/app/invoices/index";
 import { StatusWithTooltip } from "@/app/invoices/Status";
 import DataTable, { createColumnHelper, useTable } from "@/components/DataTable";
@@ -76,7 +78,7 @@ type Invoice = RouterOutput["invoices"]["list"][number];
 export default function InvoicesPage() {
   const user = useCurrentUser();
   const company = useCurrentCompany();
-  const [openModal, setOpenModal] = useState<"approve" | "reject" | null>(null);
+  const [openModal, setOpenModal] = useState<"approve" | "reject" | "delete" | null>(null);
   const [detailInvoice, setDetailInvoice] = useState<Invoice | null>(null);
   const isActionable = useIsActionable();
   const isPayable = useIsPayable();
@@ -146,21 +148,48 @@ export default function InvoicesPage() {
     [],
   );
 
-  const contextMenuContent = (row: Invoice) => {
+  const contextMenuContent = ({
+    row,
+    isSelected,
+    selectedCount,
+  }: {
+    row: Invoice;
+    isSelected: boolean;
+    selectedCount: number;
+  }) => {
+    const isGroupAction = selectedCount > 1;
+
+    if (selectedCount > 0 && !isSelected) {
+      return (
+        <ContextMenuContent>
+          <ContextMenuItem onClick={() => table.toggleAllRowsSelected(false)}>
+            <X className="size-4" />
+            Clear selection (Esc)
+          </ContextMenuItem>
+        </ContextMenuContent>
+      );
+    }
+
     if (user.roles.administrator) {
       return (
         <ContextMenuContent>
-          <ContextMenuItem asChild>
-            <Link href={`/invoices/${row.id}`}>
-              <Eye className="size-4" />
-              View Invoice
-            </Link>
-          </ContextMenuItem>
+          {!isGroupAction ? (
+            <ContextMenuItem asChild>
+              <Link href={`/invoices/${row.id}`}>
+                <Eye className="size-4" />
+                View Invoice
+              </Link>
+            </ContextMenuItem>
+          ) : null}
 
           {isActionable(row) ? (
             <>
-              <ContextMenuSeparator />
-              <ApproveContextMenuButton invoice={row} onClick={() => setOpenModal("approve")} />
+              {!isGroupAction ? <ContextMenuSeparator /> : null}
+              {/* <ApproveContextMenuButton invoice={row} onClick={() => setOpenModal("approve")} /> */}
+              <ContextMenuItem onClick={() => setOpenModal("approve")}>
+                <CheckCircle className="size-4" />
+                Approve
+              </ContextMenuItem>
               <ContextMenuItem onClick={() => setOpenModal("reject")}>
                 <XCircle className="size-4" />
                 Reject
@@ -171,20 +200,38 @@ export default function InvoicesPage() {
       );
     }
 
-    if (row.contractor.user.id === user.id && EDITABLE_INVOICE_STATES.includes(row.status)) {
+    if (user.roles.worker) {
+      const isEditable = EDITABLE_INVOICE_STATES.includes(row.status);
+      const isDeletable = DELETABLE_INVOICE_STATES.includes(row.status);
+
+      if (!isDeletable && (!isEditable || isGroupAction)) {
+        return (
+          <ContextMenuContent>
+            <ContextMenuItem onClick={() => table.toggleAllRowsSelected(false)}>
+              <X className="size-4" />
+              Clear selection (Esc)
+            </ContextMenuItem>
+          </ContextMenuContent>
+        );
+      }
       return (
         <ContextMenuContent>
-          <ContextMenuItem asChild>
-            <Link href={`/invoices/${row.id}/edit`}>
-              <SquarePen className="size-4" />
-              Edit
-            </Link>
-          </ContextMenuItem>
-          <ContextMenuSeparator />
-          <ContextMenuItem className="group" onClick={() => void 0}>
-            <Trash className="group-hover:text-destructive size-4" />
-            <span className="group-hover:text-destructive">Delete</span>
-          </ContextMenuItem>
+          {!isGroupAction && isEditable ? (
+            <ContextMenuItem asChild>
+              <Link href={`/invoices/${row.id}/edit`}>
+                <SquarePen className="size-4" />
+                Edit
+              </Link>
+            </ContextMenuItem>
+          ) : null}
+
+          {!isGroupAction && isEditable && isDeletable ? <ContextMenuSeparator /> : null}
+          {isDeletable ? (
+            <ContextMenuItem className="group" onClick={() => setOpenModal("delete")}>
+              <Trash className="group-hover:text-destructive size-4" />
+              <span className="group-hover:text-destructive">Delete</span>
+            </ContextMenuItem>
+          ) : null}
         </ContextMenuContent>
       );
     }
@@ -205,7 +252,7 @@ export default function InvoicesPage() {
             </Button>
           ) : null}
           {selectedRows.some((row) => DELETABLE_INVOICE_STATES.includes(row.status)) ? (
-            <Button variant="outline" size="small" onClick={() => void 0} className="group">
+            <Button variant="outline" size="small" onClick={() => setOpenModal("delete")} className="group">
               <Trash className="group-hover:text-destructive size-4" />
             </Button>
           ) : null}
@@ -220,7 +267,12 @@ export default function InvoicesPage() {
             <XCircle className="size-4" />
             Reject
           </Button>
-          <Button disabled={!company.completedPaymentMethodSetup} size="small" onClick={() => setOpenModal("approve")}>
+          <Button
+            variant="primary"
+            disabled={!company.completedPaymentMethodSetup}
+            size="small"
+            onClick={() => setOpenModal("approve")}
+          >
             <CheckCircle className="size-4" />
             Approve
           </Button>
@@ -434,6 +486,19 @@ export default function InvoicesPage() {
           }
         }}
         ids={detailInvoice ? [detailInvoice.id] : selectedInvoices.map((invoice) => invoice.id)}
+      />
+      <DeleteModal
+        open={openModal === "delete"}
+        onClose={() => setOpenModal(null)}
+        onDelete={() =>
+          // eslint-disable-next-line no-console
+          console.log(
+            "Submitting delete mutation",
+            selectedInvoices.map((invoice) => invoice.id),
+          )
+        }
+        ids={selectedInvoices.map((invoice) => invoice.id)}
+        invoiceNumber={selectedInvoices.length === 1 ? selectedInvoices[0]?.invoiceNumber : undefined}
       />
     </MainLayout>
   );

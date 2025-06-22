@@ -94,7 +94,7 @@ interface TableProps<T> {
   onRowClicked?: ((row: T) => void) | undefined;
   actions?: React.ReactNode;
   searchColumn?: string | undefined;
-  contextMenuContent?: (row: T) => React.ReactNode;
+  contextMenuContent?: (context: { row: T; isSelected: boolean; selectedCount: number }) => React.ReactNode;
   selectionActions?: (selectedRows: T[]) => React.ReactNode;
 }
 
@@ -322,17 +322,18 @@ export default function DataTable<T extends RowData>({
         <TableBody className="not-print:max-md:contents">
           {data.rows.length > 0 ? (
             data.rows.map((row) => {
+              const isSelected = row.getIsSelected();
               const rowContent = (
                 <TableRow
                   key={row.id}
                   className={rowClasses}
-                  data-state={row.getIsSelected() ? "selected" : undefined}
+                  data-state={isSelected ? "selected" : undefined}
                   onClick={() => onRowClicked?.(row.original)}
                 >
                   {selectable ? (
                     <TableCell className={cellClasses(null)} onClick={(e) => e.stopPropagation()}>
                       <Checkbox
-                        checked={row.getIsSelected()}
+                        checked={isSelected}
                         aria-label="Select row"
                         disabled={!row.getCanSelect()}
                         onCheckedChange={row.getToggleSelectedHandler()}
@@ -357,10 +358,16 @@ export default function DataTable<T extends RowData>({
                 </TableRow>
               );
 
-              return contextMenuContent?.(row.original) ? (
+              const menuContent = contextMenuContent?.({
+                row: row.original,
+                isSelected,
+                selectedCount: selectedRowCount,
+              });
+
+              return menuContent ? (
                 <ContextMenu key={row.id}>
                   <ContextMenuTrigger asChild>{rowContent}</ContextMenuTrigger>
-                  {contextMenuContent(row.original)}
+                  {menuContent}
                 </ContextMenu>
               ) : (
                 rowContent

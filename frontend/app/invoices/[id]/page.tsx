@@ -1,7 +1,7 @@
 "use client";
 
 import { ExclamationTriangleIcon } from "@heroicons/react/20/solid";
-import { InformationCircleIcon, PaperClipIcon, PencilIcon, XMarkIcon } from "@heroicons/react/24/outline";
+import { InformationCircleIcon, PaperClipIcon, PencilIcon, TrashIcon, XMarkIcon } from "@heroicons/react/24/outline";
 import { useMutation } from "@tanstack/react-query";
 import Link from "next/link";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
@@ -24,6 +24,7 @@ import { formatDate, formatDuration } from "@/utils/time";
 import {
   Address,
   ApproveButton,
+  DELETABLE_INVOICE_STATES,
   EDITABLE_INVOICE_STATES,
   LegacyAddress,
   RejectModal,
@@ -109,13 +110,19 @@ export default function InvoicePage() {
             invoice.requiresAcceptanceByPayee ? (
               <Button onClick={() => setAcceptPaymentModalOpen(true)}>Accept payment</Button>
             ) : (
-              <Button variant="outline" asChild>
+              <Button asChild>
                 <Link href={`/invoices/${invoice.id}/edit`}>
                   {invoice.status !== "rejected" && <PencilIcon className="h-4 w-4" />}
                   {invoice.status === "rejected" ? "Submit again" : "Edit invoice"}
                 </Link>
               </Button>
             )
+          ) : null}
+          {DELETABLE_INVOICE_STATES.includes(invoice.status) && user.id === invoice.userId ? (
+            <Button variant="outline" onClick={() => void 0} className="group">
+              <TrashIcon className="group-hover:text-destructive size-4" />
+              <span className="group-hover:text-destructive">Delete</span>
+            </Button>
           ) : null}
         </div>
       }
