@@ -145,7 +145,7 @@ export default function InvoicesPage() {
         },
       }),
     ],
-    [user.roles.administrator, data, isActionable],
+    [],
   );
 
   const contextMenuContent = ({
