@@ -99,7 +99,7 @@ RSpec.describe Invoice do
   describe "callbacks" do
     describe "on delete" do
       let(:invoice) { create(:invoice) }
-      
+
       before do
         create_list(:invoice_approval, 2, invoice:)
         create(:invoice_line_item, invoice:)
@@ -1224,5 +1224,4 @@ RSpec.describe Invoice do
       expect(build(:invoice, total_amount_in_usd_cents: 10_000_00).calculate_flexile_fee_cents).to eq 15_00
     end
   end
-
 end
