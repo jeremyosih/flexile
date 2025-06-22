@@ -160,30 +160,6 @@ export const ApproveButton = ({ invoice, onApprove }: { invoice: Invoice; onAppr
   );
 };
 
-export const ApproveContextMenuButton = ({ invoice, onClick }: { invoice: Invoice; onClick: () => void }) => {
-  const company = useCurrentCompany();
-  const taxRequirementsMet = useAreTaxRequirementsMet();
-  const pay = useIsPayable()(invoice);
-
-  return (
-    <ContextMenuItem
-      disabled={!!pay && (!company.completedPaymentMethodSetup || !taxRequirementsMet(invoice))}
-      onClick={onClick}
-    >
-      {pay ? (
-        <>
-          <CurrencyDollarIcon className="size-4" /> Pay now
-        </>
-      ) : (
-        <>
-          <CheckCircle className="size-4" />
-          Approve
-        </>
-      )}
-    </ContextMenuItem>
-  );
-};
-
 export const useRejectInvoices = (onSuccess?: () => void) => {
   const utils = trpc.useUtils();
   const company = useCurrentCompany();
