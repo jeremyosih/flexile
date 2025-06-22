@@ -5,7 +5,9 @@ import { companyContractorsFactory } from "@test/factories/companyContractors";
 import { companyStripeAccountsFactory } from "@test/factories/companyStripeAccounts";
 import { invoiceApprovalsFactory } from "@test/factories/invoiceApprovals";
 import { invoicesFactory } from "@test/factories/invoices";
+import { usersFactory } from "@test/factories/users";
 import { login } from "@test/helpers/auth";
+import { findRequiredTableRow } from "@test/helpers/matchers";
 import { expect, test, withinModal } from "@test/index";
 import { format } from "date-fns";
 import { and, eq, not, sql } from "drizzle-orm";
@@ -20,7 +22,7 @@ type CompanyContractor = Awaited<ReturnType<typeof companyContractorsFactory.cre
 type CompanyContractorWithUser = CompanyContractor & {
   user: User;
 };
-type Invoice = Awaited<ReturnType<typeof invoicesFactory.create>>["invoice"];
+
 
 test.describe("Invoices admin flow", () => {
   const setupCompany = async ({ trusted = true }: { trusted?: boolean } = {}) => {
@@ -31,14 +33,15 @@ test.describe("Invoices admin flow", () => {
     return { company, user };
   };
 
-  const countInvoiceApprovals = (companyId: bigint) =>
-    db.$count(
-      db
-        .select()
-        .from(invoiceApprovals)
-        .innerJoin(invoices, eq(invoiceApprovals.invoiceId, invoices.id))
-        .where(eq(invoices.companyId, companyId)),
-    );
+  const countInvoiceApprovals = async (companyId: bigint) => {
+    const result = await db
+      .select({ count: sql`count(*)` })
+      .from(invoiceApprovals)
+      .innerJoin(invoices, eq(invoiceApprovals.invoiceId, invoices.id))
+      .where(eq(invoices.companyId, companyId));
+    
+    return Number(result[0]?.count || 0);
+  };
 
   test("allows searching invoices by contractor name", async ({ page }) => {
     const { company, user: adminUser } = await setupCompany();
@@ -460,7 +463,6 @@ test.describe("Invoices contractor flow", () => {
 
         // Wait for deletion to complete
         await expect(page.locator("tbody tr")).toHaveCount(1);
-
         const updatedInvoices = await getInvoices();
         expect(updatedInvoices.length).toBe(1);
       });
