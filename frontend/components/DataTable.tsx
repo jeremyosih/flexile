@@ -1,22 +1,8 @@
-import { ChevronDown, ChevronUp, ListFilterIcon, SearchIcon, X } from "lucide-react";
-import {
-  type AccessorKeyColumnDef,
-  type Column,
-  createColumnHelper as originalCreateColumnHelper,
-  type DeepKeys,
-  type DeepValue,
-  flexRender,
-  getCoreRowModel,
-  type RowData,
-  type Table,
-  type TableOptions,
-  useReactTable,
-} from "@tanstack/react-table";
-import React, { useMemo } from "react";
-import { z } from "zod";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/Tooltip";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
+import { ContextMenu, ContextMenuTrigger } from "@/components/ui/context-menu";
 import {
   DropdownMenu,
   DropdownMenuCheckboxItem,
@@ -29,7 +15,6 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
-import { Separator } from "@/components/ui/separator";
 import {
   Table as ShadcnTable,
   TableBody,
@@ -40,15 +25,23 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import {
-  ContextMenu,
-  ContextMenuContent,
-  ContextMenuItem,
-  ContextMenuSeparator,
-  ContextMenuTrigger,
-} from "@/components/ui/context-menu";
-import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/Tooltip";
 import { cn } from "@/utils";
+import {
+  type AccessorKeyColumnDef,
+  type Column,
+  type DeepKeys,
+  type DeepValue,
+  flexRender,
+  getCoreRowModel,
+  createColumnHelper as originalCreateColumnHelper,
+  type RowData,
+  type Table,
+  type TableOptions,
+  useReactTable,
+} from "@tanstack/react-table";
+import { ChevronDown, ChevronUp, ListFilterIcon, SearchIcon, X } from "lucide-react";
+import React, { useMemo } from "react";
+import { z } from "zod";
 
 declare module "@tanstack/react-table" {
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
