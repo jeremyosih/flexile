@@ -52,7 +52,7 @@ RSpec.describe DeleteInvoice do
       end
 
       context "when invoice status denies deletion" do
-        [Invoice::PAYMENT_PENDING, Invoice::PROCESSING, Invoice::PAID, Invoice::FAILED].each do |status|
+        [Invoice::PAYMENT_PENDING, Invoice::PROCESSING, Invoice::PAID, Invoice::FAILED, Invoice::REJECTED].each do |status|
           context "when status is #{status}" do
             let(:invoice) { create(:invoice, status: status) }
 

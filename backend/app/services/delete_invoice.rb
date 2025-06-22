@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
 class DeleteInvoice
-  INVOICE_STATUSES_THAT_DENY_DELETION = Invoice::PAID_OR_PAYING_STATES + [Invoice::FAILED, Invoice::PROCESSING]
+  INVOICE_STATUSES_THAT_DENY_DELETION = Invoice::PAID_OR_PAYING_STATES + [Invoice::FAILED, Invoice::PROCESSING, Invoice::REJECTED]
 
   def initialize(invoice:, deleted_by:)
     @invoice = invoice
