@@ -20,7 +20,6 @@ import StripeMicrodepositVerification from "@/app/administrator/settings/StripeM
 import {
   ApproveButton,
   taxRequirementsMet,
-  ApproveContextMenuButton,
   EDITABLE_INVOICE_STATES,
   DELETABLE_INVOICE_STATES,
   RejectModal,

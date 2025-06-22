@@ -29,6 +29,7 @@ import {
   LegacyAddress,
   RejectModal,
   taxRequirementsMet,
+  DeleteModal,
   useIsActionable,
 } from "..";
 import InvoiceStatus, { StatusDetails } from "../Status";
@@ -42,6 +43,7 @@ export default function InvoicePage() {
   const [expenseCategories] = trpc.expenseCategories.list.useSuspenseQuery({ companyId: company.id });
 
   const [rejectModalOpen, setRejectModalOpen] = useState(false);
+  const [deleteModalOpen, setDeleteModalOpen] = useState(false);
   const router = useRouter();
   const isActionable = useIsActionable();
 
@@ -119,10 +121,19 @@ export default function InvoicePage() {
             )
           ) : null}
           {DELETABLE_INVOICE_STATES.includes(invoice.status) && user.id === invoice.userId ? (
-            <Button variant="outline" onClick={() => void 0} className="group">
-              <TrashIcon className="group-hover:text-destructive size-4" />
-              <span className="group-hover:text-destructive">Delete</span>
-            </Button>
+            <>
+              <Button variant="outline" onClick={() => setDeleteModalOpen(true)} className="group">
+                <TrashIcon className="group-hover:text-destructive size-4" />
+                <span className="group-hover:text-destructive">Delete</span>
+              </Button>
+              <DeleteModal
+                open={deleteModalOpen}
+                onClose={() => setDeleteModalOpen(false)}
+                onDelete={() => router.push(`/invoices`)}
+                ids={[invoice.id]}
+                invoiceNumber={invoice.invoiceNumber}
+              />
+            </>
           ) : null}
         </div>
       }
