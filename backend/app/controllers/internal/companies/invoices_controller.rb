@@ -4,6 +4,7 @@ class Internal::Companies::InvoicesController < Internal::Companies::BaseControl
   before_action :load_invoice!, only: [:edit, :update]
   before_action :authorize_invoices_for_rejection, only: [:reject]
   before_action :authorize_invoices_for_approval_and_pay, only: [:approve]
+  before_action :authorize_invoices_for_deletion, only: [:destroy]
 
   def new
     authorize Invoice
@@ -101,7 +102,6 @@ class Internal::Companies::InvoicesController < Internal::Companies::BaseControl
 
   def destroy
     authorize Invoice
-    authorize_invoices_for_deletion
 
     DeleteManyInvoices.new(
       company: Current.company,
