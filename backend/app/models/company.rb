@@ -134,7 +134,7 @@ class Company < ApplicationRecord
     account_balance >= (is_trusted? ? 0 : usd_amount)
   end
 
-  def pending_invoice_cash_amount_in_cents = invoices.pending.sum(:cash_amount_in_cents)
+  def pending_invoice_cash_amount_in_cents = invoices.alive.pending.sum(:cash_amount_in_cents)
 
   def fetch_stripe_setup_intent
     return bank_account.stripe_setup_intent if bank_account.present?
