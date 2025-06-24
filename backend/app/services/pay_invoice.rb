@@ -7,7 +7,7 @@ class PayInvoice
   delegate :company, to: :invoice, private: true
 
   def initialize(invoice_id)
-    @invoice = Invoice.find(invoice_id)
+    @invoice = Invoice.alive.find(invoice_id)
   end
 
   def process

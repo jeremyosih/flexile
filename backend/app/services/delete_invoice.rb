@@ -12,15 +12,7 @@ class DeleteInvoice
     invoice.with_lock do
       return unless can_delete?
 
-      # Clean up related records
-      invoice.invoice_approvals.destroy_all
-      invoice.invoice_line_items.destroy_all
-      invoice.invoice_expenses.destroy_all
-
-      # Remove from QuickBooks if integrated
-      invoice.integration_records.each(&:mark_deleted!)
-
-      invoice.destroy!
+      invoice.mark_deleted!
     end
   end
 
