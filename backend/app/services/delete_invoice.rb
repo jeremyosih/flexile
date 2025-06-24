@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
 class DeleteInvoice
-  INVOICE_STATUSES_THAT_DENY_DELETION = Invoice::PAID_OR_PAYING_STATES + [Invoice::FAILED, Invoice::PROCESSING, Invoice::REJECTED]
+  DELETABLE_INVOICE_STATUSES = [Invoice::RECEIVED, Invoice::APPROVED]
 
   def initialize(invoice:, deleted_by:)
     @invoice = invoice
@@ -20,6 +20,6 @@ class DeleteInvoice
       attr_reader :invoice, :deleted_by
 
       def can_delete?
-        !invoice.status.in?(INVOICE_STATUSES_THAT_DENY_DELETION)
+        invoice.status.in?(DELETABLE_INVOICE_STATUSES)
       end
 end

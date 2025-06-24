@@ -374,12 +374,10 @@ RSpec.describe Invoice do
         create(:invoice_expense, invoice:)
       end
 
-      it "destroys content when invoice is soft deleted" do
-        expect do
-          invoice.mark_deleted!
-        end.to change { InvoiceLineItem.count }.by(-1)
-           .and change { InvoiceExpense.count }.by(-1)
-           .and change { InvoiceApproval.count }.by(-2)
+      it "preserves content when invoice is soft deleted" do
+        expect { invoice.mark_deleted! }.to_not change { InvoiceLineItem.count }
+        expect { invoice.mark_deleted! }.to_not change { InvoiceExpense.count }
+        expect { invoice.mark_deleted! }.to_not change { InvoiceApproval.count }
       end
 
       it "does not destroy content when invoice status changes (not deleted)" do

@@ -130,7 +130,6 @@ class Invoice < ApplicationRecord
   before_validation :populate_bill_data, on: :create
   after_commit :destroy_approvals, if: -> { rejected? }, on: :update
   after_commit :sync_with_quickbooks, on: :update, if: :payable?
-  after_commit :destroy_content, if: -> { deleted? }, on: :update
 
   def attachment = attachments.last
 
@@ -262,11 +261,5 @@ class Invoice < ApplicationRecord
       return if min_allowed_equity_percentage <= max_allowed_equity_percentage
 
       errors.add(:min_allowed_equity_percentage, "must be less than or equal to maximum allowed equity percentage")
-    end
-
-    def destroy_content
-      invoice_line_items.destroy_all
-      invoice_expenses.destroy_all
-      invoice_approvals.destroy_all
     end
 end
