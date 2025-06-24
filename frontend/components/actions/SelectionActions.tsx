@@ -10,12 +10,7 @@ interface SelectionActionsProps<T> {
   onAction: (actionId: string, items: T[]) => void;
 }
 
-export function SelectionActions<T>({
-  selectedItems,
-  config,
-  actionContext,
-  onAction,
-}: SelectionActionsProps<T>) {
+export function SelectionActions<T>({ selectedItems, config, actionContext, onAction }: SelectionActionsProps<T>) {
   const context = selectedItems.length > 1 ? "bulk" : "single";
   const targetItem = selectedItems.length === 1 ? selectedItems[0] : null;
 
