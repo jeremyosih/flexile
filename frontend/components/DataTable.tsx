@@ -42,6 +42,9 @@ import {
 import { ChevronDown, ChevronUp, ListFilterIcon, SearchIcon, X } from "lucide-react";
 import React, { useMemo } from "react";
 import { z } from "zod";
+import { SelectionActions } from "./actions/SelectionActions";
+import { ContextMenuActions } from "./actions/ContextMenuActions";
+import type { ActionConfig, ActionContext } from "./actions/types";
 
 declare module "@tanstack/react-table" {
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -89,6 +92,11 @@ interface TableProps<T> {
   searchColumn?: string | undefined;
   contextMenuContent?: (context: { row: T; isSelected: boolean; selectedCount: number }) => React.ReactNode;
   selectionActions?: (selectedRows: T[]) => React.ReactNode;
+  // NEW: Optional entity-based actions
+  entityActionConfig?: ActionConfig<T>;
+  entityActionContext?: ActionContext;
+  onEntityAction?: (actionId: string, items: T[]) => void;
+  useEntityContextMenu?: boolean;
 }
 
 export default function DataTable<T extends RowData>({
@@ -99,6 +107,11 @@ export default function DataTable<T extends RowData>({
   searchColumn: searchColumnName,
   contextMenuContent,
   selectionActions,
+  // Add new props
+  entityActionConfig,
+  entityActionContext,
+  onEntityAction,
+  useEntityContextMenu = false,
 }: TableProps<T>) {
   React.useEffect(() => {
     function handleKeyDown(event: KeyboardEvent) {
@@ -267,7 +280,17 @@ export default function DataTable<T extends RowData>({
                     <TooltipContent>Clear selection (Esc)</TooltipContent>
                   </Tooltip>
                 </div>
-                {selectionActions?.(selectedRows)}
+                {/* Use entity actions if config provided, otherwise fall back to existing */}
+                {entityActionConfig && entityActionContext && onEntityAction ? (
+                  <SelectionActions
+                    selectedItems={selectedRows}
+                    config={entityActionConfig}
+                    actionContext={entityActionContext}
+                    onAction={onEntityAction}
+                  />
+                ) : (
+                  selectionActions?.(selectedRows)
+                )}
               </>
             ) : null}
           </div>
@@ -351,11 +374,23 @@ export default function DataTable<T extends RowData>({
                 </TableRow>
               );
 
-              const menuContent = contextMenuContent?.({
-                row: row.original,
-                isSelected,
-                selectedCount: selectedRowCount,
-              });
+              const menuContent =
+                useEntityContextMenu && entityActionConfig && entityActionContext && onEntityAction ? (
+                  <ContextMenuActions
+                    item={row.original}
+                    selectedItems={selectedRows}
+                    config={entityActionConfig}
+                    actionContext={entityActionContext}
+                    onAction={onEntityAction}
+                    onClearSelection={() => table.toggleAllRowsSelected(false)}
+                  />
+                ) : (
+                  contextMenuContent?.({
+                    row: row.original,
+                    isSelected,
+                    selectedCount: selectedRowCount,
+                  })
+                );
 
               return menuContent ? (
                 <ContextMenu key={row.id} modal={false}>

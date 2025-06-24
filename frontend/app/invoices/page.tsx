@@ -11,7 +11,6 @@ import {
   CheckCircle,
   XCircle,
   SquarePen,
-  X,
 } from "lucide-react";
 import { getFilteredRowModel, getSortedRowModel } from "@tanstack/react-table";
 import Link from "next/link";
@@ -48,6 +47,7 @@ import { company_invoices_path, export_company_invoices_path } from "@/utils/rou
 import { formatDate } from "@/utils/time";
 import NumberInput from "@/components/NumberInput";
 import QuantityInput from "./QuantityInput";
+
 import { z } from "zod";
 import { useForm } from "react-hook-form";
 import { Form, FormField, FormItem, FormLabel, FormControl } from "@/components/ui/form";
@@ -61,7 +61,8 @@ import { linkClasses } from "@/components/Link";
 import DatePicker from "@/components/DatePicker";
 import { CalendarDate, today, getLocalTimeZone } from "@internationalized/date";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { ContextMenuContent, ContextMenuItem, ContextMenuSeparator } from "@/components/ui/context-menu";
+
+import type { ActionConfig, ActionContext } from "@/components/actions/types";
 
 const statusNames = {
   received: "Awaiting approval",
@@ -87,6 +88,80 @@ export default function InvoicesPage() {
   });
 
   const { canSubmitInvoices, hasLegalDetails, unsignedContractId } = useCanSubmitInvoices();
+
+  // Inline actions using existing hooks - follows repo pattern
+  const { actionConfig, actionContext } = useMemo(() => {
+    const actionContext: ActionContext = {
+      userRole: user.roles.administrator ? "administrator" : "worker",
+      permissions: {}, // Using existing hooks directly in conditions instead
+    };
+
+    const actionConfig: ActionConfig<Invoice> = {
+      entityName: "invoices",
+      contextMenuGroups: ["navigation", "approval", "destructive"],
+      actions: {
+        view: {
+          id: "view",
+          label: "View Invoice",
+          icon: Eye,
+          contexts: ["single"],
+          permissions: ["worker", "administrator"],
+          conditions: () => true,
+          href: (invoice: Invoice) => `/invoices/${invoice.id}`,
+          group: "navigation",
+          showIn: ["contextMenu"],
+        },
+        edit: {
+          id: "edit",
+          label: "Edit",
+          icon: SquarePen,
+          contexts: ["single"],
+          permissions: ["worker"],
+          conditions: (invoice: Invoice) => EDITABLE_INVOICE_STATES.includes(invoice.status),
+          href: (invoice: Invoice) => `/invoices/${invoice.id}/edit`,
+          group: "navigation",
+          showIn: ["selection", "contextMenu"],
+        },
+        approve: {
+          id: "approve",
+          label: "Approve",
+          icon: CheckCircle,
+          contexts: ["single", "bulk"],
+          permissions: ["administrator"],
+          conditions: (invoice: Invoice) => isActionable(invoice),
+          action: "approve",
+          group: "approval",
+          showIn: ["selection", "contextMenu"],
+        },
+        reject: {
+          id: "reject",
+          label: "Reject",
+          icon: XCircle,
+          contexts: ["single", "bulk"],
+          permissions: ["administrator"],
+          conditions: (invoice: Invoice) => isActionable(invoice),
+          action: "reject",
+          group: "approval",
+          showIn: ["selection", "contextMenu"],
+        },
+        delete: {
+          id: "delete",
+          label: "Delete",
+          icon: Trash,
+          variant: "destructive",
+          contexts: ["single", "bulk"],
+          permissions: ["worker"],
+          conditions: (invoice: Invoice) => DELETABLE_INVOICE_STATES.includes(invoice.status),
+          action: "delete",
+          group: "destructive",
+          showIn: ["selection", "contextMenu"],
+          iconOnly: true, // Icon only in selection bar
+        },
+      },
+    };
+
+    return { actionConfig, actionContext };
+  }, [user.roles, company.completedPaymentMethodSetup, isActionable]);
 
   const approveInvoices = useApproveInvoices(() => {
     setOpenModal(null);
@@ -148,7 +223,7 @@ export default function InvoicesPage() {
     [],
   );
 
-  const contextMenuContent = ({
+  /* const contextMenuContent = ({
     row,
     isSelected,
     selectedCount,
@@ -261,9 +336,9 @@ export default function InvoicesPage() {
         </ContextMenuItem>
       </ContextMenuContent>
     );
-  };
+  }; */
 
-  const selectionActions = (selectedRows: Invoice[]) => {
+  /* const selectionActions = (selectedRows: Invoice[]) => {
     if (user.roles.worker) {
       return (
         <>
@@ -317,6 +392,24 @@ export default function InvoicesPage() {
     }
 
     return null;
+  }; */
+
+  const handleInvoiceAction = (actionId: string, invoices: Invoice[]) => {
+    switch (actionId) {
+      case "approve":
+        setOpenModal("approve");
+        break;
+      case "reject":
+        setOpenModal("reject");
+        break;
+      case "delete": {
+        // Ensure selected invoices are marked for deletion
+        const invoiceIds = invoices.map((inv) => inv.id);
+        table.setRowSelection(invoiceIds.reduce((acc, id) => ({ ...acc, [id]: true }), {}));
+        setOpenModal("delete");
+        break;
+      }
+    }
   };
 
   const table = useTable({
@@ -454,8 +547,10 @@ export default function InvoicesPage() {
                   </Button>
                 ) : null
               }
-              contextMenuContent={contextMenuContent}
-              selectionActions={selectionActions}
+              entityActionConfig={actionConfig}
+              entityActionContext={actionContext}
+              onEntityAction={handleInvoiceAction}
+              useEntityContextMenu
             />
           </>
         ) : (
