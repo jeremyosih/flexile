@@ -40,14 +40,14 @@ class CompanyWorkerMailer < ApplicationMailer
 
   def invoice_rejected(invoice_id:, reason: nil)
     @reason = reason
-    @invoice = Invoice.find(invoice_id)
+    @invoice = Invoice.alive.find(invoice_id)
     return unless @invoice.rejected?
     mail(to: @invoice.user.email, reply_to: @invoice.company.email,
          subject: "Action required: Invoice #{@invoice.invoice_number}")
   end
 
   def invoice_approved(invoice_id:)
-    @invoice = Invoice.find(invoice_id)
+    @invoice = Invoice.alive.find(invoice_id)
     @company = @invoice.company
     @user = @invoice.user
     @bank_account = @user.bank_account
