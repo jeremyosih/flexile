@@ -5,7 +5,7 @@ class VestStockOptionsJob
   sidekiq_options retry: 5
 
   def perform(invoice_id)
-    invoice = Invoice.find(invoice_id)
+    invoice = Invoice.alive.find(invoice_id)
     return if invoice.equity_vested? || invoice.equity_amount_in_options <= 0
 
     user = invoice.user
