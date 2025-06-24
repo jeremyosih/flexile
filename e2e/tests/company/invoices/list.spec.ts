@@ -1,3 +1,5 @@
+import { companies, consolidatedInvoices, invoiceApprovals, invoices, users } from "@/db/schema";
+import { assert } from "@/utils/assert";
 import { db } from "@test/db";
 import { companiesFactory } from "@test/factories/companies";
 import { companyAdministratorsFactory } from "@test/factories/companyAdministrators";
@@ -11,10 +13,6 @@ import { findRequiredTableRow } from "@test/helpers/matchers";
 import { expect, test, withinModal } from "@test/index";
 import { format } from "date-fns";
 import { and, eq, not, sql } from "drizzle-orm";
-import { companies, consolidatedInvoices, invoiceApprovals, invoices, users } from "@/db/schema";
-import { assert } from "@/utils/assert";
-import { findRequiredTableRow } from "@test/helpers/matchers";
-import { usersFactory } from "@test/factories/users";
 
 type User = Awaited<ReturnType<typeof usersFactory.create>>["user"];
 type Company = Awaited<ReturnType<typeof companiesFactory.create>>["company"];
@@ -32,16 +30,6 @@ const setupCompany = async ({ trusted = true }: { trusted?: boolean } = {}) => {
 };
 
 test.describe("Invoices admin flow", () => {
-  const countInvoiceApprovals = async (companyId: bigint) => {
-    const result = await db
-      .select({ count: sql`count(*)` })
-      .from(invoiceApprovals)
-      .innerJoin(invoices, eq(invoiceApprovals.invoiceId, invoices.id))
-      .where(eq(invoices.companyId, companyId));
-
-    return Number(result[0]?.count || 0);
-  };
-
   test("allows searching invoices by contractor name", async ({ page }) => {
     const { company, user: adminUser } = await setupCompany();
 
@@ -348,7 +336,11 @@ test.describe("Invoices admin flow", () => {
 
 test.describe("Invoices contractor flow", () => {
   const setupCompanyAndContractor = async (isProjectBased = false) => {
-    const { company, user: adminUser } = await setupCompany();
+    const { company } = await companiesFactory.create({ isTrusted: true, requiredInvoiceApprovalCount: 2 });
+    const { administrator } = await companyAdministratorsFactory.create({ companyId: company.id });
+    const adminUser = await db.query.users.findFirst({ where: eq(users.id, administrator.userId) });
+    assert(adminUser !== undefined);
+
     const { companyContractor } = isProjectBased
       ? await companyContractorsFactory.createProjectBased({ companyId: company.id })
       : await companyContractorsFactory.create({ companyId: company.id });
@@ -365,108 +357,96 @@ test.describe("Invoices contractor flow", () => {
     };
   };
 
-  const sharedContractorTests = (
-    testContext = test,
-    setup: () => Promise<{
-      company: Company;
-      adminUser: User;
-      companyContractor: CompanyContractorWithUser;
-    }>,
-  ) => {
-    let company: Company;
-    let companyContractor: CompanyContractorWithUser;
+  test.describe("deleting invoices", () => {
+    test("shows delete option in context menu for received invoices when logged in as contractor", async ({ page }) => {
+      const { company, companyContractor } = await setupCompanyAndContractor(false);
 
-    const getInvoices = () => db.query.invoices.findMany({ where: eq(invoices.companyId, company.id) });
-
-    testContext.describe("deleting invoices", () => {
-      testContext.beforeEach(async () => {
-        const setupResult = await setup();
-        company = setupResult.company;
-        companyContractor = setupResult.companyContractor;
-
-        // Create invoices for deletion tests
-        await invoicesFactory.create({
-          companyId: company.id,
-          companyContractorId: companyContractor.id,
-          status: "received",
-        });
-        await invoicesFactory.create({
-          companyId: company.id,
-          companyContractorId: companyContractor.id,
-          status: "received",
-        });
+      // Create invoices for deletion tests
+      await invoicesFactory.create({
+        companyId: company.id,
+        companyContractorId: companyContractor.id,
+        status: "received",
+      });
+      await invoicesFactory.create({
+        companyId: company.id,
+        companyContractorId: companyContractor.id,
+        status: "received",
       });
 
-      testContext(
-        "shows delete option in context menu for received invoices when logged in as contractor",
-        async ({ page }) => {
-          const contractorUser = companyContractor.user;
-          await login(page, contractorUser);
-          await page.getByRole("link", { name: "Invoices" }).click();
+      const contractorUser = companyContractor.user;
+      await login(page, contractorUser);
+      await page.getByRole("link", { name: "Invoices" }).click();
 
-          assert(contractorUser.legalName !== null);
+      assert(contractorUser.legalName !== null);
 
-          // Right-click on the invoice row to open context menu
-          const targetInvoiceRow = await findRequiredTableRow(page, {
-            Status: "Awaiting approval",
-          });
-
-          await targetInvoiceRow.click({ button: "right" });
-          await expect(page.getByRole("menuitem").filter({ hasText: "Delete" })).toBeVisible();
-        },
-      );
-
-      testContext("does not show delete option for non-deletable invoices", async ({ page }) => {
-        // Update invoice to paid status (non-deletable)
-        const invoiceList = await getInvoices();
-        const firstInvoice = invoiceList[0];
-        assert(firstInvoice !== undefined);
-        await db.update(invoices).set({ status: "paid" }).where(eq(invoices.id, firstInvoice.id));
-
-        const contractorUser = companyContractor.user;
-        await login(page, contractorUser);
-        await page.getByRole("link", { name: "Invoices" }).click();
-
-        assert(contractorUser.legalName !== null);
-
-        const targetInvoiceRow = await findRequiredTableRow(page, {
-          Status: "Paid",
-        });
-
-        await targetInvoiceRow.click({ button: "right" });
-        await expect(page.getByRole("menuitem").filter({ hasText: "Delete" })).not.toBeVisible();
+      // Right-click on the invoice row to open context menu
+      const targetInvoiceRow = await findRequiredTableRow(page, {
+        Status: "Awaiting approval",
       });
 
-      testContext("allows contractor to delete invoice via selection actions", async ({ page }) => {
-        const contractorUser = companyContractor.user;
-        await login(page, contractorUser);
-        await page.getByRole("link", { name: "Invoices" }).click();
-
-        assert(contractorUser.legalName !== null);
-
-        // Wait for table to load
-        await expect(page.locator("tbody tr")).toHaveCount(2);
-
-        // Select any deletable row by checkbox
-        await page.locator("tbody tr").first().getByRole("checkbox").check();
-        await page.getByRole("button", { name: "Delete selected invoices" }).click();
-        await page.getByRole("button", { name: "Delete" }).click();
-
-        // Wait for deletion to complete
-        await expect(page.locator("tbody tr")).toHaveCount(1);
-        const updatedInvoices = await getInvoices();
-        expect(updatedInvoices.length).toBe(1);
-      });
+      await targetInvoiceRow.click({ button: "right" });
+      await expect(page.getByRole("menuitem").filter({ hasText: "Delete" })).toBeVisible();
     });
-  };
 
-  test.describe("when company worker has an hourly rate", () => {
-    const setup = async () => setupCompanyAndContractor(false);
-    sharedContractorTests(test, setup);
-  });
+    test("does not show delete option for non-deletable invoices", async ({ page }) => {
+      const { company, companyContractor } = await setupCompanyAndContractor(false);
 
-  test.describe("when company worker has a project-based rate", () => {
-    const setup = async () => setupCompanyAndContractor(true);
-    sharedContractorTests(test, setup);
+      // Create invoice and update to paid status (non-deletable)
+      const { invoice } = await invoicesFactory.create({
+        companyId: company.id,
+        companyContractorId: companyContractor.id,
+        status: "received",
+      });
+      await db.update(invoices).set({ status: "paid" }).where(eq(invoices.id, invoice.id));
+
+      const contractorUser = companyContractor.user;
+      await login(page, contractorUser);
+      await page.getByRole("link", { name: "Invoices" }).click();
+
+      assert(contractorUser.legalName !== null);
+
+      const targetInvoiceRow = await findRequiredTableRow(page, {
+        Status: "Paid",
+      });
+
+      await targetInvoiceRow.click({ button: "right" });
+      await expect(page.getByRole("menuitem").filter({ hasText: "Delete" })).not.toBeVisible();
+    });
+
+    test("allows contractor to delete invoice via selection actions", async ({ page }) => {
+      const { company, companyContractor } = await setupCompanyAndContractor(false);
+
+      // Create invoices for deletion tests
+      await invoicesFactory.create({
+        companyId: company.id,
+        companyContractorId: companyContractor.id,
+        status: "received",
+      });
+      await invoicesFactory.create({
+        companyId: company.id,
+        companyContractorId: companyContractor.id,
+        status: "received",
+      });
+
+      const contractorUser = companyContractor.user;
+      await login(page, contractorUser);
+      await page.getByRole("link", { name: "Invoices" }).click();
+
+      assert(contractorUser.legalName !== null);
+
+      // Wait for table to load
+      await expect(page.locator("tbody tr")).toHaveCount(2);
+
+      // Select any deletable row by checkbox
+      await page.locator("tbody tr").first().getByRole("checkbox").check();
+      await page.getByRole("button", { name: "Delete selected invoices" }).click();
+      await page.getByRole("button", { name: "Delete" }).click();
+
+      // Wait for deletion to complete
+      await expect(page.locator("tbody tr")).toHaveCount(1);
+
+      const updatedInvoices = await db.query.invoices.findMany({ where: eq(invoices.companyId, company.id) });
+      expect(updatedInvoices.length).toBe(1);
+    });
   });
 });
