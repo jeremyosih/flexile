@@ -7,19 +7,11 @@ import { companyContractorsFactory } from "@test/factories/companyContractors";
 import { companyStripeAccountsFactory } from "@test/factories/companyStripeAccounts";
 import { invoiceApprovalsFactory } from "@test/factories/invoiceApprovals";
 import { invoicesFactory } from "@test/factories/invoices";
-import { usersFactory } from "@test/factories/users";
 import { login } from "@test/helpers/auth";
 import { findRequiredTableRow } from "@test/helpers/matchers";
 import { expect, test, withinModal } from "@test/index";
 import { format } from "date-fns";
-import { and, eq, not, sql } from "drizzle-orm";
-
-type User = Awaited<ReturnType<typeof usersFactory.create>>["user"];
-type Company = Awaited<ReturnType<typeof companiesFactory.create>>["company"];
-type CompanyContractor = Awaited<ReturnType<typeof companyContractorsFactory.create>>["companyContractor"];
-type CompanyContractorWithUser = CompanyContractor & {
-  user: User;
-};
+import { and, eq, isNull, not, sql } from "drizzle-orm";
 
 const setupCompany = async ({ trusted = true }: { trusted?: boolean } = {}) => {
   const { company } = await companiesFactory.create({ isTrusted: trusted, requiredInvoiceApprovalCount: 2 });
@@ -134,14 +126,16 @@ test.describe("Invoices admin flow", () => {
     });
   });
 
-  const countInvoiceApprovals = (companyId: bigint) =>
-    db.$count(
-      db
-        .select()
-        .from(invoiceApprovals)
-        .innerJoin(invoices, eq(invoiceApprovals.invoiceId, invoices.id))
-        .where(eq(invoices.companyId, companyId)),
-    );
+  // See discussion: https://github.com/drizzle-team/drizzle-orm/discussions/3119 - $count usage and SQL-likeness rationale
+  const countInvoiceApprovals = async (companyId: bigint) => {
+    const result = await db
+      .select({ count: sql`count(*)`.mapWith(Number) })
+      .from(invoiceApprovals)
+      .innerJoin(invoices, eq(invoiceApprovals.invoiceId, invoices.id))
+      .where(and(eq(invoices.companyId, companyId), isNull(invoices.deletedAt)));
+
+    return result[0]?.count ?? 0;
+  };
 
   test.describe("approving and paying invoices", () => {
     test("allows approving an invoice", async ({ page }) => {
@@ -277,7 +271,9 @@ test.describe("Invoices admin flow", () => {
         expect(await countInvoiceApprovals(company.id)).toBe(invoiceApprovalsCountBefore + 4);
         expect(consolidatedInvoicesCountAfter).toBe(consolidatedInvoicesCountBefore + 1);
 
-        const updatedInvoices = await db.query.invoices.findMany({ where: eq(invoices.companyId, company.id) });
+        const updatedInvoices = await db.query.invoices.findMany({
+          where: and(eq(invoices.companyId, company.id), isNull(invoices.deletedAt)),
+        });
         const expectedPaidInvoices = [invoice.id, invoice2.id];
         for (const invoice of updatedInvoices) {
           expect(invoice.status).toBe(expectedPaidInvoices.includes(invoice.id) ? "payment_pending" : "approved");
@@ -445,7 +441,9 @@ test.describe("Invoices contractor flow", () => {
       // Wait for deletion to complete
       await expect(page.locator("tbody tr")).toHaveCount(1);
 
-      const updatedInvoices = await db.query.invoices.findMany({ where: eq(invoices.companyId, company.id) });
+      const updatedInvoices = await db.query.invoices.findMany({
+        where: and(eq(invoices.companyId, company.id), isNull(invoices.deletedAt)),
+      });
       expect(updatedInvoices.length).toBe(1);
     });
   });
