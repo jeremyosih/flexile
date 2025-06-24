@@ -15,25 +15,15 @@ RSpec.describe DeleteInvoice do
         create(:integration_record, integratable: invoice)
       end
 
-      it "destroys the invoice" do
-        expect { service.perform }.to change { Invoice.count }.by(-1)
+      it "soft deletes the invoice" do
+        expect { service.perform }.to change { Invoice.alive.count }.by(-1)
+                                  .and change { Invoice.deleted.count }.by(1)
       end
 
-      it "destroys associated invoice_approvals" do
-        expect { service.perform }.to change { InvoiceApproval.count }.by(-2)
-      end
-
-      it "destroys associated invoice_line_items" do
-        expect { service.perform }.to change { InvoiceLineItem.count }.by(-2)
-      end
-
-      it "destroys associated invoice_expenses" do
-        expect { service.perform }.to change { InvoiceExpense.count }.by(-1)
-      end
-
-      it "marks integration records as deleted" do
+      it "preserves integration records for audit purposes" do
+        expect { service.perform }.not_to change { IntegrationRecord.count }
         service.perform
-        expect(invoice.integration_records.first.reload).to be_deleted
+        expect(invoice.integration_records.first.reload.deleted?).to be false
       end
     end
 
@@ -45,7 +35,8 @@ RSpec.describe DeleteInvoice do
 
             it "performs deletion" do
               invoice # Create the invoice first
-              expect { service.perform }.to change { Invoice.count }.by(-1)
+              expect { service.perform }.to change { Invoice.alive.count }.by(-1)
+                          .and change { Invoice.deleted.count }.by(1)
             end
           end
         end
@@ -58,7 +49,9 @@ RSpec.describe DeleteInvoice do
 
             it "does not delete the invoice" do
               invoice # Create the invoice first
-              expect { service.perform }.not_to change { Invoice.count }
+
+              expect { service.perform }.not_to change { Invoice.alive.count }
+              expect { service.perform }.not_to change { Invoice.deleted.count }
             end
           end
         end

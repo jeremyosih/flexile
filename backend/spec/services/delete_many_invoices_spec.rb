@@ -19,20 +19,15 @@ RSpec.describe DeleteManyInvoices do
         create(:invoice_expense, invoice: invoice1)
       end
 
-      it "deletes all specified invoices" do
-        expect { service.perform }.to change { Invoice.count }.by(-2)
+      it "soft deletes all specified invoices" do
+        expect { service.perform }.to change { Invoice.alive.count }.by(-2)
+          .and change { Invoice.deleted.count }.by(2)
       end
 
       it "calls DeleteInvoice service for each invoice" do
         expect(DeleteInvoice).to receive(:new).with(invoice: invoice1, deleted_by: deleted_by).and_call_original
         expect(DeleteInvoice).to receive(:new).with(invoice: invoice2, deleted_by: deleted_by).and_call_original
         service.perform
-      end
-
-      it "deletes associated records" do
-        expect { service.perform }.to change { InvoiceApproval.count }.by(-2)
-          .and change { InvoiceLineItem.count }.by(-3)
-          .and change { InvoiceExpense.count }.by(-1)
       end
     end
 
@@ -41,7 +36,8 @@ RSpec.describe DeleteManyInvoices do
         it "proceeds with deletion" do
           invoice1
           invoice2
-          expect { service.perform }.to change { Invoice.count }.by(-2)
+          expect { service.perform }.to change { Invoice.alive.count }.by(-2)
+            .and change { Invoice.deleted.count }.by(2)
         end
       end
 
@@ -55,11 +51,18 @@ RSpec.describe DeleteManyInvoices do
 
         it "does not delete any invoices" do
           invoice1
+
           expect do
             service.perform
           rescue ActiveRecord::RecordNotFound
             # Expected exception
-          end.not_to change { Invoice.count }
+          end.not_to change { Invoice.alive.count }
+
+          expect do
+            service.perform
+          rescue ActiveRecord::RecordNotFound
+            # Expected exception
+          end.not_to change { Invoice.deleted.count }
         end
       end
 
@@ -92,7 +95,8 @@ RSpec.describe DeleteManyInvoices do
       let(:invoice_ids) { [] }
 
       it "does not delete any invoices" do
-        expect { service.perform }.not_to change { Invoice.count }
+        expect { service.perform }.not_to change { Invoice.alive.count }
+        expect { service.perform }.not_to change { Invoice.deleted.count }
       end
 
       it "does not call DeleteInvoice service" do

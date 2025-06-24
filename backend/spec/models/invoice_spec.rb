@@ -106,13 +106,14 @@ RSpec.describe Invoice do
         create(:invoice_expense, invoice:)
       end
 
-      it "allows model-level deletion without cascading dependent records" do
+      it "cascade deletion to invoice_approvals, invoice_line_items, and invoice_expenses when soft deleted" do
         expect do
-          invoice.destroy!
-        end.to change { Invoice.count }.by(-1)
-           .and change { InvoiceApproval.count }.by(0)
-           .and change { InvoiceLineItem.count }.by(0)
-           .and change { InvoiceExpense.count }.by(0)
+          invoice.mark_deleted!
+        end.to change { Invoice.alive.count }.by(-1)
+           .and change { Invoice.deleted.count }.by(1)
+           .and change { InvoiceApproval.count }.by(-2)
+           .and change { InvoiceLineItem.count }.by(-1)
+           .and change { InvoiceExpense.count }.by(-1)
       end
     end
   end
@@ -120,17 +121,17 @@ RSpec.describe Invoice do
   describe "deletion" do
     it "allows deletion of RECEIVED invoices" do
       invoice = create(:invoice, status: Invoice::RECEIVED)
-      expect { invoice.destroy! }.not_to raise_error
+      expect { invoice.mark_deleted! }.not_to raise_error
     end
 
     it "allows deletion of APPROVED invoices" do
       invoice = create(:invoice, status: Invoice::APPROVED)
-      expect { invoice.destroy! }.not_to raise_error
+      expect { invoice.mark_deleted! }.not_to raise_error
     end
 
     it "allows deletion regardless of status at model level" do
       invoice = create(:invoice, status: Invoice::PAID)
-      expect { invoice.destroy! }.not_to raise_error
+      expect { invoice.mark_deleted! }.not_to raise_error
     end
 
     describe "allowed equity percentage range" do
@@ -313,6 +314,26 @@ RSpec.describe Invoice do
         expect(described_class.not_pending_acceptance).to match_array(expected)
       end
     end
+
+    describe ".alive" do
+      it "returns only non-deleted invoices" do
+        active_invoice = create(:invoice)
+        deleted_invoice = create(:invoice, :deleted)
+
+        expect(Invoice.alive).to include(active_invoice)
+        expect(Invoice.alive).not_to include(deleted_invoice)
+      end
+    end
+
+    describe ".deleted" do
+      it "returns only deleted invoices" do
+        active_invoice = create(:invoice)
+        deleted_invoice = create(:invoice, :deleted)
+
+        expect(Invoice.deleted).to include(deleted_invoice)
+        expect(Invoice.deleted).not_to include(active_invoice)
+      end
+    end
   end
 
   describe "callbacks" do
@@ -341,6 +362,30 @@ RSpec.describe Invoice do
             invoice.update!(status: Invoice::REJECTED)
           end.to change { invoice.reload.invoice_approvals.count }.by(-2)
         end
+      end
+    end
+
+    describe "#destroy_content" do
+      let(:invoice) { create(:invoice) }
+
+      before do
+        create_list(:invoice_approval, 2, invoice:)
+        create(:invoice_line_item, invoice:)
+        create(:invoice_expense, invoice:)
+      end
+
+      it "destroys content when invoice is soft deleted" do
+        expect do
+          invoice.mark_deleted!
+        end.to change { InvoiceLineItem.count }.by(-1)
+           .and change { InvoiceExpense.count }.by(-1)
+           .and change { InvoiceApproval.count }.by(-2)
+      end
+
+      it "does not destroy content when invoice status changes (not deleted)" do
+        expect { invoice.update!(status: Invoice::APPROVED) }.to_not change { InvoiceLineItem.count }
+        expect { invoice.update!(status: Invoice::APPROVED) }.to_not change { InvoiceExpense.count }
+        expect { invoice.update!(status: Invoice::APPROVED) }.to_not change { InvoiceApproval.count }
       end
     end
 
