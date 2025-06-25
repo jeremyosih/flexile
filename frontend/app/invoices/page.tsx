@@ -283,7 +283,7 @@ export default function InvoicesPage() {
         </Link>
       </Button>
     </div>
-  ) : !user.hasPayoutMethod ? (
+  ) : !user.hasPayoutMethodForInvoices ? (
     <>
       Please{" "}
       <Link className={linkClasses} href="/settings/payouts">
