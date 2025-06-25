@@ -405,7 +405,11 @@ export default function InvoicesPage() {
       case "delete": {
         // Ensure selected invoices are marked for deletion
         const invoiceIds = invoices.map((inv) => inv.id);
-        table.setRowSelection(invoiceIds.reduce((acc, id) => ({ ...acc, [id]: true }), {}));
+        const selection: Record<string, boolean> = {};
+        invoiceIds.forEach((id) => {
+          selection[id] = true;
+        });
+        table.setRowSelection(selection);
         setOpenModal("delete");
         break;
       }

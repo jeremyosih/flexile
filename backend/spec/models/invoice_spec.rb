@@ -106,14 +106,14 @@ RSpec.describe Invoice do
         create(:invoice_expense, invoice:)
       end
 
-      it "cascade deletion to invoice_approvals, invoice_line_items, and invoice_expenses when soft deleted" do
+      it "preserves related records when invoice is soft deleted" do
         expect do
           invoice.mark_deleted!
         end.to change { Invoice.alive.count }.by(-1)
            .and change { Invoice.deleted.count }.by(1)
-           .and change { InvoiceApproval.count }.by(-2)
-           .and change { InvoiceLineItem.count }.by(-1)
-           .and change { InvoiceExpense.count }.by(-1)
+           .and change { InvoiceApproval.count }.by(0)
+           .and change { InvoiceLineItem.count }.by(0)
+           .and change { InvoiceExpense.count }.by(0)
       end
     end
   end

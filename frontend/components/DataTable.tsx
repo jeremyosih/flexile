@@ -377,6 +377,7 @@ export default function DataTable<T extends RowData>({
               const menuContent =
                 useEntityContextMenu && entityActionConfig && entityActionContext && onEntityAction ? (
                   <ContextMenuActions
+                    key={`context-menu-${row.id}`}
                     item={row.original}
                     selectedItems={selectedRows}
                     config={entityActionConfig}

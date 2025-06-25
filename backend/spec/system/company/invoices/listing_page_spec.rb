@@ -198,7 +198,7 @@ RSpec.describe "Invoice listing page" do
       [
         create(:invoice, company:, invoice_date: Date.parse("Dec 1, 2023")),
         create(:invoice, company:, invoice_date: Date.parse("Nov 1, 2023")),
-        create(:invoice, :project_based, company_worker: create(:company_worker, :project_based, company:), invoice_date: Date.parse("Nov 1, 2023")),
+        create(:invoice, company_worker: create(:company_worker, :project_based, company:), invoice_date: Date.parse("Nov 1, 2023")),
       ]
     end
     let!(:partially_approved_invoices) do
@@ -462,7 +462,7 @@ RSpec.describe "Invoice listing page" do
         expect(page).not_to have_text(deleted_invoice.invoice_number)
 
         # History tab
-        visit spa_company_invoices_path(company.external_Id, tab: "history")
+        visit spa_company_invoices_path(company.external_id, tab: "history")
         expect(page).not_to have_text(deleted_invoice.invoice_number)
       end
 
