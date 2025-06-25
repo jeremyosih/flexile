@@ -65,7 +65,7 @@ RSpec.describe OnboardingState::User do
 
       expect do
         redirect_path = described_class.new(user:, company: nil).redirect_path
-        expect(redirect_path).to eq("/administrator/settings")
+        expect(redirect_path).to eq("/people")
       end.to change(Company, :count).by(1)
         .and change(CompanyAdministrator, :count).by(1)
 
