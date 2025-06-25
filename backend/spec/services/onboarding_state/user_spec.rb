@@ -60,12 +60,12 @@ RSpec.describe OnboardingState::User do
       end
     end
 
-    it "creates a company and returns administrator settings page for a user with an unknown role" do
+    it "creates a company and returns people page for a user with an unknown role" do
       user = create(:user, email: "test@example.com", country_code: "US")
 
       expect {
         redirect_path = described_class.new(user:, company: nil).redirect_path
-        expect(redirect_path).to eq("/administrator/settings")
+        expect(redirect_path).to eq("/people")
       }.to change(Company, :count).by(1)
         .and change(CompanyAdministrator, :count).by(1)
 

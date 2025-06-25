@@ -20,8 +20,8 @@ class OnboardingState::User
       OnboardingState::Investor.new(user:, company:).redirect_path
     else
       # User has no company roles - create a company and make them administrator
-      created_company = create_company_for_user
-      "/administrator/settings"
+      create_company_for_user
+      "/people"
     end
   end
 
