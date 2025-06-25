@@ -42,12 +42,13 @@ RSpec.describe "Root path" do
   # TODO: Fix authentication for users without company roles in system tests
   # This test fails because sign_in helper can't authenticate users without company roles
   # The actual redirect logic works correctly (tested in OnboardingState::User specs)
-  xit "redirects to the invoices page for a user with an unknown role", :vcr do
+  # Note: Users without roles now get a company created automatically and are redirected to administrator settings
+  xit "creates company and redirects to administrator settings for a user with an unknown role", :vcr do
     user = create(:user, clerk_id: "user_test123")
     sign_in user
 
     visit root_path
 
-    expect(page).to have_current_path(spa_invoices_path)
+    expect(page).to have_current_path("/administrator/settings")
   end
 end
