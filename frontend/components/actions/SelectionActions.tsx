@@ -1,6 +1,5 @@
-import React from "react";
+import { Button } from "@/components/ui/button";
 import Link from "next/link";
-import { Button, buttonVariants } from "@/components/ui/button";
 import type { ActionConfig, ActionContext } from "./types";
 
 interface SelectionActionsProps<T> {

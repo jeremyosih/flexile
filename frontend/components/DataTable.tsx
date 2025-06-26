@@ -1,4 +1,3 @@
-import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/Tooltip";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -42,8 +41,8 @@ import {
 import { ChevronDown, ChevronUp, ListFilterIcon, SearchIcon, X } from "lucide-react";
 import React, { useMemo } from "react";
 import { z } from "zod";
-import { SelectionActions } from "./actions/SelectionActions";
 import { ContextMenuActions } from "./actions/ContextMenuActions";
+import { SelectionActions } from "./actions/SelectionActions";
 import type { ActionConfig, ActionContext } from "./actions/types";
 
 declare module "@tanstack/react-table" {
@@ -273,7 +272,6 @@ export default function DataTable<T extends RowData>({
               </DropdownMenu>
             ) : null}
 
-            {/* Always render selection container, but hide when empty */}
             {selectable ? (
               <div className={cn("flex gap-2", selectedRowCount === 0 && "pointer-events-none opacity-0")}>
                 <div className="bg-accent border-muted flex h-9 items-center justify-center rounded-md border border-dashed px-2 font-medium">
@@ -293,7 +291,6 @@ export default function DataTable<T extends RowData>({
                     <X className="size-4 shrink-0" aria-hidden="true" />
                   </Button>
                 </div>
-                {/* Selection actions */}
                 {entityActionConfig && entityActionContext && onEntityAction ? (
                   <SelectionActions
                     selectedItems={selectedRows}

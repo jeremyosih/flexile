@@ -8,12 +8,13 @@ import {
   Plus,
   Trash2,
   CheckCircle,
-  XCircle,
   SquarePen,
+  Eye,
+  Ban,
 } from "lucide-react";
 import { getFilteredRowModel, getSortedRowModel } from "@tanstack/react-table";
 import Link from "next/link";
-import React, { Fragment, useEffect, useMemo, useState } from "react";
+import React, { Fragment, useCallback, useEffect, useMemo, useState } from "react";
 import StripeMicrodepositVerification from "@/app/administrator/settings/StripeMicrodepositVerification";
 import {
   ApproveButton,
@@ -90,20 +91,18 @@ export default function InvoicesPage() {
 
   const { canSubmitInvoices, hasLegalDetails, unsignedContractId } = useCanSubmitInvoices();
 
-  const { actionConfig, actionContext } = useMemo(() => {
-    const actionContext: ActionContext = {
-      userRole: user.roles.administrator ? "administrator" : "worker",
-      permissions: {}, // Using existing hooks directly in conditions instead
-    };
-
-    const isPayNowDisabled = (invoice: Invoice) => {
+  const isPayNowDisabled = useCallback(
+    (invoice: Invoice) => {
       const payable = isPayable(invoice);
       return payable && (!company.completedPaymentMethodSetup || !taxRequirementsMet(invoice));
-    };
+    },
+    [isPayable, company.completedPaymentMethodSetup],
+  );
 
-    const actionConfig: ActionConfig<Invoice> = {
+  const actionConfig = useMemo(
+    (): ActionConfig<Invoice> => ({
       entityName: "invoices",
-      contextMenuGroups: ["navigation", "approval", "destructive"],
+      contextMenuGroups: ["navigation", "approval", "destructive", "view"],
       actions: {
         edit: {
           id: "edit",
@@ -111,7 +110,7 @@ export default function InvoicesPage() {
           icon: SquarePen,
           contexts: ["single"],
           permissions: ["worker"],
-          conditions: (invoice: Invoice) => EDITABLE_INVOICE_STATES.includes(invoice.status),
+          conditions: (invoice: Invoice, _context: ActionContext) => EDITABLE_INVOICE_STATES.includes(invoice.status),
           href: (invoice: Invoice) => `/invoices/${invoice.id}/edit`,
           group: "navigation",
           showIn: ["selection", "contextMenu"],
@@ -119,10 +118,10 @@ export default function InvoicesPage() {
         reject: {
           id: "reject",
           label: "Reject",
-          icon: XCircle,
+          icon: Ban,
           contexts: ["single", "bulk"],
           permissions: ["administrator"],
-          conditions: (invoice: Invoice) => isActionable(invoice),
+          conditions: (invoice: Invoice, _context: ActionContext) => isActionable(invoice),
           action: "reject",
           group: "approval",
           showIn: ["selection", "contextMenu"],
@@ -134,10 +133,22 @@ export default function InvoicesPage() {
           variant: "primary",
           contexts: ["single", "bulk"],
           permissions: ["administrator"],
-          conditions: (invoice: Invoice) => isActionable(invoice) && !isPayNowDisabled(invoice),
+          conditions: (invoice: Invoice, _context: ActionContext) =>
+            isActionable(invoice) && !isPayNowDisabled(invoice),
           action: "approve",
           group: "approval",
           showIn: ["selection", "contextMenu"],
+        },
+        view: {
+          id: "view",
+          label: "View invoice",
+          icon: Eye,
+          contexts: ["single"],
+          permissions: ["administrator"],
+          conditions: () => true,
+          href: (invoice: Invoice) => `/invoices/${invoice.id}`,
+          group: "view",
+          showIn: ["contextMenu"],
         },
         delete: {
           id: "delete",
@@ -146,17 +157,24 @@ export default function InvoicesPage() {
           variant: "destructive",
           contexts: ["single", "bulk"],
           permissions: ["worker"],
-          conditions: (invoice: Invoice) => DELETABLE_INVOICE_STATES.includes(invoice.status),
+          conditions: (invoice: Invoice, _context: ActionContext) => DELETABLE_INVOICE_STATES.includes(invoice.status),
           action: "delete",
           group: "destructive",
           showIn: ["selection", "contextMenu"],
-          iconOnly: true, // Icon only in selection bar
+          iconOnly: true,
         },
       },
-    };
+    }),
+    [isActionable, isPayNowDisabled],
+  );
 
-    return { actionConfig, actionContext };
-  }, [user.roles, company.completedPaymentMethodSetup, isActionable, isPayable]);
+  const actionContext = useMemo(
+    (): ActionContext => ({
+      userRole: user.roles.administrator ? "administrator" : "worker",
+      permissions: {}, // Using existing hooks directly in conditions instead
+    }),
+    [user.roles],
+  );
 
   const approveInvoices = useApproveInvoices(() => {
     setOpenModal(null);
@@ -267,11 +285,20 @@ export default function InvoicesPage() {
 
   const selectedRows = table.getSelectedRowModel().rows;
   const selectedInvoices = selectedRows.map((row) => row.original);
-  // Let the action system handle filtering - these are used for modal content only
-  const selectedApprovableInvoices = selectedInvoices.filter(isActionable);
-  const selectedPayableInvoices = selectedApprovableInvoices.filter(isPayable);
-  const selectedDeletableInvoices = selectedInvoices.filter((invoice) =>
-    DELETABLE_INVOICE_STATES.includes(invoice.status),
+
+  const selectedApprovableInvoices = useMemo(
+    () => selectedInvoices.filter(isActionable),
+    [selectedInvoices, isActionable],
+  );
+
+  const selectedPayableInvoices = useMemo(
+    () => selectedApprovableInvoices.filter(isPayable),
+    [selectedApprovableInvoices, isPayable],
+  );
+
+  const selectedDeletableInvoices = useMemo(
+    () => selectedInvoices.filter((invoice) => DELETABLE_INVOICE_STATES.includes(invoice.status)),
+    [selectedInvoices],
   );
 
   const workerNotice = !user.roles.worker ? null : !hasLegalDetails ? (
@@ -444,7 +471,7 @@ export default function InvoicesPage() {
         </DialogContent>
       </Dialog>
 
-      {detailInvoice && detailInvoice.invoiceType !== "other" ? (
+      {detailInvoice ? (
         <TasksModal
           invoice={detailInvoice}
           onClose={() => setDetailInvoice(null)}
@@ -459,6 +486,7 @@ export default function InvoicesPage() {
           if (detailInvoice) {
             setDetailInvoice(null);
           }
+          table.resetRowSelection();
         }}
         ids={detailInvoice ? [detailInvoice.id] : selectedInvoices.filter(isActionable).map((invoice) => invoice.id)}
       />
