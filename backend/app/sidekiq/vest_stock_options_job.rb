@@ -5,6 +5,7 @@ class VestStockOptionsJob
   sidekiq_options retry: 5
 
   def perform(invoice_id)
+    # Use find() to raise RecordNotFound - invoices can't be deleted at this state, so exceptions catch bugs
     invoice = Invoice.alive.find(invoice_id)
     return if invoice.equity_vested? || invoice.equity_amount_in_options <= 0
 

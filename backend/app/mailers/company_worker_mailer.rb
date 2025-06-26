@@ -40,14 +40,15 @@ class CompanyWorkerMailer < ApplicationMailer
 
   def invoice_rejected(invoice_id:, reason: nil)
     @reason = reason
-    @invoice = Invoice.alive.find_by(id: invoice_id)
-    return if @invoice.nil?
+    # Use find() to raise RecordNotFound - invoices can't be deleted at this state, so exceptions catch bugs
+    @invoice = Invoice.alive.find(invoice_id)
     return unless @invoice.rejected?
     mail(to: @invoice.user.email, reply_to: @invoice.company.email,
          subject: "Action required: Invoice #{@invoice.invoice_number}")
   end
 
   def invoice_approved(invoice_id:)
+    # Silently skip email if invoice deleted between job scheduling and execution
     @invoice = Invoice.alive.find_by(id: invoice_id)
     return if @invoice.nil?
     @company = @invoice.company

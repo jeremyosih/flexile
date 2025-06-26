@@ -88,6 +88,7 @@ class Invoice < ApplicationRecord
   validate :total_must_be_a_sum_of_cash_and_equity
   validate :min_equity_less_than_max_equity
 
+  # Note: .alive calls are explicit safety filters, not redundant - any invoice status could technically be deleted
   scope :pending, -> { alive.where(status: COMPANY_PENDING_STATES) }
   scope :processing, -> { alive.where(status: PROCESSING) }
   scope :mid_payment, -> { alive.where(status: [PROCESSING, PAYMENT_PENDING]) }
