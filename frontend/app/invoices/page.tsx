@@ -681,7 +681,7 @@ const QuickInvoicesSection = () => {
     if (equityAllocation?.equityPercentage) {
       form.setValue("invoiceEquityPercent", equityAllocation.equityPercentage);
     }
-  }, [equityAllocation, form]);
+  }, [equityAllocation]);
 
   return (
     <Card className={canSubmitInvoices ? "" : "opacity-50"}>
