@@ -1,7 +1,8 @@
 "use client";
 
 import { ExclamationTriangleIcon } from "@heroicons/react/20/solid";
-import { InformationCircleIcon, PaperClipIcon, PencilIcon, Trash2, XMarkIcon } from "@heroicons/react/24/outline";
+import { InformationCircleIcon, PaperClipIcon, PencilIcon, XMarkIcon } from "@heroicons/react/24/outline";
+import { Trash2 } from "lucide-react";
 import { useMutation } from "@tanstack/react-query";
 import Link from "next/link";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
@@ -86,10 +87,6 @@ export default function InvoicePage() {
       title={`Invoice ${invoice.invoiceNumber}`}
       headerActions={
         <div className="flex gap-2">
-          {invoice.requiresAcceptanceByPayee && user.id === invoice.userId ? (
-            <Button onClick={() => setAcceptPaymentModalOpen(true)}>Accept payment</Button>
-          ) : null}
-
           {user.roles.administrator && isActionable(invoice) ? (
             <>
               <Button variant="outline" onClick={() => setRejectModalOpen(true)}>

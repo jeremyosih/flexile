@@ -3,7 +3,6 @@ import Link from "next/link";
 import { X } from "lucide-react";
 import { ContextMenuContent, ContextMenuItem, ContextMenuSeparator } from "../ui/context-menu";
 import type { ActionConfig, ActionContext } from "./types";
-import { cn } from "@/lib/utils";
 
 interface ContextMenuActionsProps<T> {
   item: T;
@@ -89,7 +88,7 @@ export function ContextMenuActions<T>({
               return (
                 <ContextMenuItem
                   key={action.key}
-                  variant={action.variant === "destructive" ? "destructive" : undefined}
+                  {...(action.variant === "destructive" && { variant: "destructive" })}
                   onClick={() => action.action && onAction(action.action, targetItems)}
                 >
                   <action.icon className="size-4" />

@@ -167,6 +167,19 @@ export default function DataTable<T extends RowData>({
   const selectedRows = table.getSelectedRowModel().rows.map((row) => row.original);
   const selectedRowCount = selectedRows.length;
 
+  const handleSelectAllChange = () => {
+    const isAllSelected = table.getIsAllRowsSelected();
+    const isSomeSelected = table.getIsSomeRowsSelected();
+
+    if (!isSomeSelected && !isAllSelected) {
+      table.toggleAllRowsSelected(true);
+    } else if (isSomeSelected && !isAllSelected) {
+      table.toggleAllRowsSelected(true);
+    } else if (isAllSelected) {
+      table.toggleAllRowsSelected(false);
+    }
+  };
+
   return (
     <div className="grid gap-4">
       {filterable || actions ? (
@@ -263,24 +276,22 @@ export default function DataTable<T extends RowData>({
             {/* Always render selection container, but hide when empty */}
             {selectable ? (
               <div className={cn("flex gap-2", selectedRowCount === 0 && "pointer-events-none opacity-0")}>
-                <div className="bg-accent border-muted flex h-9 items-center rounded-md border border-dashed px-2">
-                  <span className="text-sm whitespace-nowrap">{selectedRowCount} selected</span>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="-mr-1 size-6 p-0 hover:bg-transparent"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          table.toggleAllRowsSelected(false);
-                        }}
-                      >
-                        <X className="size-4 shrink-0" aria-hidden="true" />
-                      </Button>
-                    </TooltipTrigger>
-                    <TooltipContent>Clear selection (Esc)</TooltipContent>
-                  </Tooltip>
+                <div className="bg-accent border-muted flex h-9 items-center justify-center rounded-md border border-dashed px-2 font-medium">
+                  <span className="text-sm whitespace-nowrap">
+                    <span className="inline-block w-4 text-center tabular-nums">{selectedRowCount}</span> selected
+                  </span>
+
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="-mr-1 size-6 p-0 hover:bg-transparent"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      table.toggleAllRowsSelected(false);
+                    }}
+                  >
+                    <X className="size-4 shrink-0" aria-hidden="true" />
+                  </Button>
                 </div>
                 {/* Selection actions */}
                 {entityActionConfig && entityActionContext && onEntityAction ? (
@@ -312,7 +323,8 @@ export default function DataTable<T extends RowData>({
                   <Checkbox
                     checked={table.getIsAllRowsSelected()}
                     aria-label="Select all"
-                    onCheckedChange={(checked) => table.toggleAllRowsSelected(checked === true)}
+                    onCheckedChange={handleSelectAllChange}
+                    indeterminate={table.getIsSomeRowsSelected() && !table.getIsAllRowsSelected()}
                   />
                 </TableHead>
               ) : null}

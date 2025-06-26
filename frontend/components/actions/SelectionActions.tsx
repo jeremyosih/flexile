@@ -1,8 +1,7 @@
 import React from "react";
 import Link from "next/link";
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 import type { ActionConfig, ActionContext } from "./types";
-import { cn } from "@/lib/utils";
 
 interface SelectionActionsProps<T> {
   selectedItems: T[];
@@ -30,7 +29,7 @@ export function SelectionActions<T>({ selectedItems, config, actionContext, onAc
         selectedItems.length === 1 && targetItem
           ? action.conditions(targetItem, actionContext)
           : selectedItems.length > 1
-            ? selectedItems.some((item) => action.conditions(item, actionContext))
+            ? selectedItems.every((item) => action.conditions(item, actionContext))
             : false,
     }))
     .filter((action) => action.available);
@@ -42,9 +41,9 @@ export function SelectionActions<T>({ selectedItems, config, actionContext, onAc
           return (
             <Button
               key={action.key}
-              variant="outline"
+              variant={action.variant || "outline"}
               size={action.iconOnly ? "icon" : "small"}
-              className={action.iconOnly ? "py-1" : ""}
+              className={action.iconOnly ? "aspect-square px-2" : ""}
               asChild
             >
               <Link href={{ pathname: action.href(targetItem) }}>
@@ -59,15 +58,13 @@ export function SelectionActions<T>({ selectedItems, config, actionContext, onAc
           return (
             <Button
               key={action.key}
-              variant="outline"
+              variant={action.variant || "outline"}
               size="small"
               onClick={() => action.action && onAction(action.action, selectedItems)}
-              className={`${action.variant === "destructive" ? "group" : ""} ${action.iconOnly ? "aspect-square px-2" : ""}`}
+              className={action.iconOnly ? "aspect-square px-2" : ""}
               aria-label={`${action.label} selected ${config.entityName}`}
             >
-              <action.icon
-                className={`size-4 ${action.variant === "destructive" ? "group-hover:text-destructive" : ""}`}
-              />
+              <action.icon className="size-4" />
               {!action.iconOnly && action.label}
             </Button>
           );

@@ -25,6 +25,7 @@ import {
   useIsActionable,
   useIsPayable,
   DeleteModal,
+  AcceptPaymentButton,
 } from "@/app/invoices/index";
 import { StatusWithTooltip } from "@/app/invoices/Status";
 import DataTable, { createColumnHelper, useTable } from "@/components/DataTable";
@@ -74,6 +75,7 @@ const statusNames = {
 };
 
 type Invoice = RouterOutput["invoices"]["list"][number];
+
 export default function InvoicesPage() {
   const user = useCurrentUser();
   const company = useCurrentCompany();
@@ -88,11 +90,15 @@ export default function InvoicesPage() {
 
   const { canSubmitInvoices, hasLegalDetails, unsignedContractId } = useCanSubmitInvoices();
 
-  // Inline actions using existing hooks - follows repo pattern
   const { actionConfig, actionContext } = useMemo(() => {
     const actionContext: ActionContext = {
       userRole: user.roles.administrator ? "administrator" : "worker",
       permissions: {}, // Using existing hooks directly in conditions instead
+    };
+
+    const isPayNowDisabled = (invoice: Invoice) => {
+      const payable = isPayable(invoice);
+      return payable && (!company.completedPaymentMethodSetup || !taxRequirementsMet(invoice));
     };
 
     const actionConfig: ActionConfig<Invoice> = {
@@ -110,17 +116,6 @@ export default function InvoicesPage() {
           group: "navigation",
           showIn: ["selection", "contextMenu"],
         },
-        approve: {
-          id: "approve",
-          label: "Approve",
-          icon: CheckCircle,
-          contexts: ["single", "bulk"],
-          permissions: ["administrator"],
-          conditions: (invoice: Invoice) => isActionable(invoice),
-          action: "approve",
-          group: "approval",
-          showIn: ["selection", "contextMenu"],
-        },
         reject: {
           id: "reject",
           label: "Reject",
@@ -129,6 +124,18 @@ export default function InvoicesPage() {
           permissions: ["administrator"],
           conditions: (invoice: Invoice) => isActionable(invoice),
           action: "reject",
+          group: "approval",
+          showIn: ["selection", "contextMenu"],
+        },
+        approve: {
+          id: "approve",
+          label: "Approve",
+          icon: CheckCircle,
+          variant: "primary",
+          contexts: ["single", "bulk"],
+          permissions: ["administrator"],
+          conditions: (invoice: Invoice) => isActionable(invoice) && !isPayNowDisabled(invoice),
+          action: "approve",
           group: "approval",
           showIn: ["selection", "contextMenu"],
         },
@@ -149,7 +156,7 @@ export default function InvoicesPage() {
     };
 
     return { actionConfig, actionContext };
-  }, [user.roles, company.completedPaymentMethodSetup]);
+  }, [user.roles, company.completedPaymentMethodSetup, isActionable, isPayable]);
 
   const approveInvoices = useApproveInvoices(() => {
     setOpenModal(null);
@@ -201,9 +208,15 @@ export default function InvoicesPage() {
         header: () => null,
         cell: (info) => {
           const invoice = info.row.original;
+
           if (user.roles.administrator && isActionable(invoice)) {
             return <ApproveButton invoice={invoice} />;
           }
+
+          if (invoice.requiresAcceptanceByPayee && user.id === invoice.contractor.user.id) {
+            return <AcceptPaymentButton invoice={invoice} />;
+          }
+
           return null;
         },
       }),
@@ -212,15 +225,21 @@ export default function InvoicesPage() {
   );
 
   const handleInvoiceAction = (actionId: string, invoices: Invoice[]) => {
+    const isSingleAction = invoices.length === 1;
+    const singleInvoice = invoices[0];
+
     switch (actionId) {
       case "approve":
-        setOpenModal("approve");
+        if (isSingleAction && singleInvoice) {
+          setDetailInvoice(singleInvoice);
+        } else {
+          setOpenModal("approve");
+        }
         break;
       case "reject":
         setOpenModal("reject");
         break;
       case "delete": {
-        // Ensure selected invoices are marked for deletion
         const invoiceIds = invoices.map((inv) => inv.id);
         const selection: Record<string, boolean> = {};
         invoiceIds.forEach((id) => {
@@ -248,6 +267,7 @@ export default function InvoicesPage() {
 
   const selectedRows = table.getSelectedRowModel().rows;
   const selectedInvoices = selectedRows.map((row) => row.original);
+  // Let the action system handle filtering - these are used for modal content only
   const selectedApprovableInvoices = selectedInvoices.filter(isActionable);
   const selectedPayableInvoices = selectedApprovableInvoices.filter(isPayable);
   const selectedDeletableInvoices = selectedInvoices.filter((invoice) =>
