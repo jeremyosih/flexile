@@ -6,8 +6,7 @@ import {
   CircleCheck,
   Info,
   Plus,
-  Trash,
-  Eye,
+  Trash2,
   CheckCircle,
   XCircle,
   SquarePen,
@@ -100,17 +99,6 @@ export default function InvoicesPage() {
       entityName: "invoices",
       contextMenuGroups: ["navigation", "approval", "destructive"],
       actions: {
-        view: {
-          id: "view",
-          label: "View Invoice",
-          icon: Eye,
-          contexts: ["single"],
-          permissions: ["worker", "administrator"],
-          conditions: () => true,
-          href: (invoice: Invoice) => `/invoices/${invoice.id}`,
-          group: "navigation",
-          showIn: ["contextMenu"],
-        },
         edit: {
           id: "edit",
           label: "Edit",
@@ -147,7 +135,7 @@ export default function InvoicesPage() {
         delete: {
           id: "delete",
           label: "Delete",
-          icon: Trash,
+          icon: Trash2,
           variant: "destructive",
           contexts: ["single", "bulk"],
           permissions: ["worker"],
@@ -161,7 +149,7 @@ export default function InvoicesPage() {
     };
 
     return { actionConfig, actionContext };
-  }, [user.roles, company.completedPaymentMethodSetup, isActionable]);
+  }, [user.roles, company.completedPaymentMethodSetup]);
 
   const approveInvoices = useApproveInvoices(() => {
     setOpenModal(null);

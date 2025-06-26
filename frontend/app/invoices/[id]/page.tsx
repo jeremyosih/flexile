@@ -1,7 +1,7 @@
 "use client";
 
 import { ExclamationTriangleIcon } from "@heroicons/react/20/solid";
-import { InformationCircleIcon, PaperClipIcon, PencilIcon, TrashIcon, XMarkIcon } from "@heroicons/react/24/outline";
+import { InformationCircleIcon, PaperClipIcon, PencilIcon, Trash2, XMarkIcon } from "@heroicons/react/24/outline";
 import { useMutation } from "@tanstack/react-query";
 import Link from "next/link";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
@@ -89,7 +89,6 @@ export default function InvoicePage() {
           {invoice.requiresAcceptanceByPayee && user.id === invoice.userId ? (
             <Button onClick={() => setAcceptPaymentModalOpen(true)}>Accept payment</Button>
           ) : null}
-          <InvoiceStatus aria-label="Status" invoice={invoice} />
 
           {user.roles.administrator && isActionable(invoice) ? (
             <>
@@ -120,10 +119,11 @@ export default function InvoicePage() {
               </Button>
             )
           ) : null}
+          <InvoiceStatus aria-label="Status" invoice={invoice} />
           {DELETABLE_INVOICE_STATES.includes(invoice.status) && user.id === invoice.userId ? (
             <>
               <Button variant="outline" onClick={() => setDeleteModalOpen(true)} className="group">
-                <TrashIcon className="group-hover:text-destructive size-4" />
+                <Trash2 className="group-hover:text-destructive size-4" />
                 <span className="group-hover:text-destructive">Delete</span>
               </Button>
               <DeleteModal

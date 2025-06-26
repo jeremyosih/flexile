@@ -3,6 +3,7 @@ import Link from "next/link";
 import { X } from "lucide-react";
 import { ContextMenuContent, ContextMenuItem, ContextMenuSeparator } from "../ui/context-menu";
 import type { ActionConfig, ActionContext } from "./types";
+import { cn } from "@/lib/utils";
 
 interface ContextMenuActionsProps<T> {
   item: T;
@@ -26,19 +27,17 @@ export function ContextMenuActions<T>({
   const targetItems = isItemSelected ? selectedItems : [item];
   const context = targetItems.length > 1 ? "bulk" : "single";
 
-  // If item is not selected but there are selected items, show clear selection only
   if (!isItemSelected && hasSelection && onClearSelection) {
     return (
       <ContextMenuContent>
         <ContextMenuItem onClick={onClearSelection}>
           <X className="size-4" />
-          Clear Selection (Esc)
+          Clear selection (Esc)
         </ContextMenuItem>
       </ContextMenuContent>
     );
   }
 
-  // Filter and group available actions
   const availableActions = Object.entries(config.actions)
     .filter(
       ([_, action]) =>
@@ -90,15 +89,11 @@ export function ContextMenuActions<T>({
               return (
                 <ContextMenuItem
                   key={action.key}
-                  className={action.variant === "destructive" ? "group" : ""}
+                  variant={action.variant === "destructive" ? "destructive" : undefined}
                   onClick={() => action.action && onAction(action.action, targetItems)}
                 >
-                  <action.icon
-                    className={`size-4 ${action.variant === "destructive" ? "group-hover:text-destructive" : ""}`}
-                  />
-                  <span className={action.variant === "destructive" ? "group-hover:text-destructive" : ""}>
-                    {action.label}
-                  </span>
+                  <action.icon className="size-4" />
+                  <span>{action.label}</span>
                 </ContextMenuItem>
               );
             }

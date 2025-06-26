@@ -2,6 +2,7 @@ import React from "react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import type { ActionConfig, ActionContext } from "./types";
+import { cn } from "@/lib/utils";
 
 interface SelectionActionsProps<T> {
   selectedItems: T[];
@@ -39,7 +40,13 @@ export function SelectionActions<T>({ selectedItems, config, actionContext, onAc
       {availableActions.map((action) => {
         if (action.href && targetItem) {
           return (
-            <Button key={action.key} variant="outline" size="small" asChild>
+            <Button
+              key={action.key}
+              variant="outline"
+              size={action.iconOnly ? "icon" : "small"}
+              className={action.iconOnly ? "py-1" : ""}
+              asChild
+            >
               <Link href={{ pathname: action.href(targetItem) }}>
                 <action.icon className="size-4" />
                 {!action.iconOnly && action.label}
@@ -55,7 +62,7 @@ export function SelectionActions<T>({ selectedItems, config, actionContext, onAc
               variant="outline"
               size="small"
               onClick={() => action.action && onAction(action.action, selectedItems)}
-              className={action.variant === "destructive" ? "group" : ""}
+              className={`${action.variant === "destructive" ? "group" : ""} ${action.iconOnly ? "aspect-square px-2" : ""}`}
               aria-label={`${action.label} selected ${config.entityName}`}
             >
               <action.icon

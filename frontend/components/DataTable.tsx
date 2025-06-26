@@ -259,8 +259,10 @@ export default function DataTable<T extends RowData>({
                 </DropdownMenuContent>
               </DropdownMenu>
             ) : null}
-            {selectable && selectedRowCount > 0 ? (
-              <>
+
+            {/* Always render selection container, but hide when empty */}
+            {selectable ? (
+              <div className={cn("flex gap-2", selectedRowCount === 0 && "pointer-events-none opacity-0")}>
                 <div className="bg-accent border-muted flex h-9 items-center rounded-md border border-dashed px-2">
                   <span className="text-sm whitespace-nowrap">{selectedRowCount} selected</span>
                   <Tooltip>
@@ -280,7 +282,7 @@ export default function DataTable<T extends RowData>({
                     <TooltipContent>Clear selection (Esc)</TooltipContent>
                   </Tooltip>
                 </div>
-                {/* Use entity actions if config provided, otherwise fall back to existing */}
+                {/* Selection actions */}
                 {entityActionConfig && entityActionContext && onEntityAction ? (
                   <SelectionActions
                     selectedItems={selectedRows}
@@ -291,12 +293,13 @@ export default function DataTable<T extends RowData>({
                 ) : (
                   selectionActions?.(selectedRows)
                 )}
-              </>
+              </div>
             ) : null}
           </div>
           <div className="flex justify-between md:justify-end md:gap-2">{actions}</div>
         </div>
       ) : null}
+
       <ShadcnTable className="caption-top not-print:max-md:grid">
         {caption ? (
           <TableCaption className="mb-2 text-left text-lg font-bold text-black">{caption}</TableCaption>
