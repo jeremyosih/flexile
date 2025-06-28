@@ -107,6 +107,15 @@ export function useIsPayable() {
       company.requiredInvoiceApprovals - invoice.approvals.length <= (isApprovedByCurrentUser(invoice) ? 0 : 1));
 }
 
+export function useIsDeletable() {
+  const user = useCurrentUser();
+
+  return (invoice: Invoice) =>
+    DELETABLE_INVOICE_STATES.includes(invoice.status) &&
+    !invoice.requiresAcceptanceByPayee &&
+    user.id === ("id" in invoice.contractor.user ? invoice.contractor.user.id : "");
+}
+
 export const useApproveInvoices = (onSuccess?: () => void) => {
   const utils = trpc.useUtils();
   const company = useCurrentCompany();

@@ -20,11 +20,11 @@ import {
   ApproveButton,
   taxRequirementsMet,
   EDITABLE_INVOICE_STATES,
-  DELETABLE_INVOICE_STATES,
   RejectModal,
   useApproveInvoices,
   useIsActionable,
   useIsPayable,
+  useIsDeletable,
   DeleteModal,
   AcceptPaymentButton,
 } from "@/app/invoices/index";
@@ -84,6 +84,7 @@ export default function InvoicesPage() {
   const [detailInvoice, setDetailInvoice] = useState<Invoice | null>(null);
   const isActionable = useIsActionable();
   const isPayable = useIsPayable();
+  const isDeletable = useIsDeletable();
   const [data] = trpc.invoices.list.useSuspenseQuery({
     companyId: company.id,
     contractorId: user.roles.administrator ? undefined : user.roles.worker?.id,
@@ -157,7 +158,7 @@ export default function InvoicesPage() {
           variant: "destructive",
           contexts: ["single", "bulk"],
           permissions: ["worker"],
-          conditions: (invoice: Invoice, _context: ActionContext) => DELETABLE_INVOICE_STATES.includes(invoice.status),
+          conditions: (invoice: Invoice, _context: ActionContext) => isDeletable(invoice),
           action: "delete",
           group: "destructive",
           showIn: ["selection", "contextMenu"],
@@ -297,8 +298,8 @@ export default function InvoicesPage() {
   );
 
   const selectedDeletableInvoices = useMemo(
-    () => selectedInvoices.filter((invoice) => DELETABLE_INVOICE_STATES.includes(invoice.status)),
-    [selectedInvoices],
+    () => selectedInvoices.filter(isDeletable),
+    [selectedInvoices, isDeletable],
   );
 
   const workerNotice = !user.roles.worker ? null : !hasLegalDetails ? (

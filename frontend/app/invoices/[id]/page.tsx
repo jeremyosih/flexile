@@ -25,13 +25,13 @@ import { formatDate, formatDuration } from "@/utils/time";
 import {
   Address,
   ApproveButton,
-  DELETABLE_INVOICE_STATES,
   EDITABLE_INVOICE_STATES,
   LegacyAddress,
   RejectModal,
   taxRequirementsMet,
   DeleteModal,
   useIsActionable,
+  useIsDeletable,
 } from "..";
 import InvoiceStatus, { StatusDetails } from "../Status";
 
@@ -47,6 +47,7 @@ export default function InvoicePage() {
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
   const router = useRouter();
   const isActionable = useIsActionable();
+  const isDeletable = useIsDeletable();
 
   const searchParams = useSearchParams();
   const [acceptPaymentModalOpen, setAcceptPaymentModalOpen] = useState(
@@ -87,6 +88,7 @@ export default function InvoicePage() {
       title={`Invoice ${invoice.invoiceNumber}`}
       headerActions={
         <div className="flex gap-2">
+          <InvoiceStatus aria-label="Status" invoice={invoice} />
           {user.roles.administrator && isActionable(invoice) ? (
             <>
               <Button variant="outline" onClick={() => setRejectModalOpen(true)}>
@@ -104,32 +106,36 @@ export default function InvoicePage() {
               <ApproveButton invoice={invoice} onApprove={() => router.push(`/invoices`)} />
             </>
           ) : null}
-          {EDITABLE_INVOICE_STATES.includes(invoice.status) && user.id === invoice.userId ? (
-            invoice.requiresAcceptanceByPayee ? (
-              <Button onClick={() => setAcceptPaymentModalOpen(true)}>Accept payment</Button>
-            ) : (
-              <Button variant="default" asChild>
-                <Link href={`/invoices/${invoice.id}/edit`}>
-                  {invoice.status !== "rejected" && <PencilIcon className="h-4 w-4" />}
-                  {invoice.status === "rejected" ? "Submit again" : "Edit invoice"}
-                </Link>
-              </Button>
-            )
-          ) : null}
-          <InvoiceStatus aria-label="Status" invoice={invoice} />
-          {DELETABLE_INVOICE_STATES.includes(invoice.status) && user.id === invoice.userId ? (
+          {user.id === invoice.userId ? (
             <>
-              <Button variant="outline" onClick={() => setDeleteModalOpen(true)} className="group">
-                <Trash2 className="group-hover:text-destructive size-4" />
-                <span className="group-hover:text-destructive">Delete</span>
-              </Button>
-              <DeleteModal
-                open={deleteModalOpen}
-                onClose={() => setDeleteModalOpen(false)}
-                onDelete={() => router.push(`/invoices`)}
-                ids={[invoice.id]}
-                invoiceNumber={invoice.invoiceNumber}
-              />
+              {EDITABLE_INVOICE_STATES.includes(invoice.status) ? (
+                invoice.requiresAcceptanceByPayee ? (
+                  <Button onClick={() => setAcceptPaymentModalOpen(true)}>Accept payment</Button>
+                ) : (
+                  <Button variant="default" asChild>
+                    <Link href={`/invoices/${invoice.id}/edit`}>
+                      {invoice.status !== "rejected" && <PencilIcon className="h-4 w-4" />}
+                      {invoice.status === "rejected" ? "Submit again" : "Edit invoice"}
+                    </Link>
+                  </Button>
+                )
+              ) : null}
+
+              {isDeletable(invoice) ? (
+                <>
+                  <Button variant="outline" onClick={() => setDeleteModalOpen(true)} className="group">
+                    <Trash2 className="group-hover:text-destructive size-4" />
+                    <span className="group-hover:text-destructive">Delete</span>
+                  </Button>
+                  <DeleteModal
+                    open={deleteModalOpen}
+                    onClose={() => setDeleteModalOpen(false)}
+                    onDelete={() => router.push(`/invoices`)}
+                    ids={[invoice.id]}
+                    invoiceNumber={invoice.invoiceNumber}
+                  />
+                </>
+              ) : null}
             </>
           ) : null}
         </div>
