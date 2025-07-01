@@ -28,7 +28,7 @@ import {
   DeleteModal,
   AcceptPaymentButton,
 } from "@/app/invoices/index";
-import { StatusWithTooltip } from "@/app/invoices/Status";
+import Status, { StatusDetails } from "@/app/invoices/Status";
 import DataTable, { createColumnHelper, useTable } from "@/components/DataTable";
 import MainLayout from "@/components/layouts/Main";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -48,7 +48,6 @@ import { company_invoices_path, export_company_invoices_path } from "@/utils/rou
 import { formatDate } from "@/utils/time";
 import NumberInput from "@/components/NumberInput";
 import QuantityInput from "./QuantityInput";
-
 import { z } from "zod";
 import { useForm } from "react-hook-form";
 import { Form, FormField, FormItem, FormLabel, FormControl } from "@/components/ui/form";
@@ -214,7 +213,7 @@ export default function InvoicesPage() {
         header: "Status",
         cell: (info) => (
           <div className="relative z-1">
-            <StatusWithTooltip invoice={info.row.original} />
+            <Status invoice={info.row.original} />
           </div>
         ),
         meta: {
@@ -275,7 +274,8 @@ export default function InvoicesPage() {
     data,
     getRowId: (invoice) => invoice.id,
     initialState: {
-      sorting: [{ id: user.roles.administrator ? "status" : "invoiceDate", desc: !user.roles.administrator }],
+      sorting: [{ id: user.roles.administrator ? "actions" : "invoiceDate", desc: true }],
+      columnFilters: user.roles.administrator ? [{ id: "Status", value: ["Awaiting approval", "Failed"] }] : [],
     },
     getSortedRowModel: getSortedRowModel(),
     getFilteredRowModel: getFilteredRowModel(),
@@ -525,25 +525,7 @@ const TasksModal = ({
           <DialogTitle>{invoice.billFrom}</DialogTitle>
         </DialogHeader>
         <div className="mt-4 grid gap-8">
-          {invoice.status === "approved" && invoice.approvals.length > 0 ? (
-            <Alert variant="default">
-              <Info className="size-5" />
-              <AlertDescription>
-                Approved by{" "}
-                {invoice.approvals
-                  .map((approval) => `${approval.approver.name} on ${formatDate(approval.approvedAt, { time: true })}`)
-                  .join(", ")}
-              </AlertDescription>
-            </Alert>
-          ) : invoice.status === "rejected" ? (
-            <Alert variant="destructive">
-              <AlertTriangle className="size-5" />
-              <AlertDescription>
-                Rejected {invoice.rejector ? `by ${invoice.rejector.name}` : ""}{" "}
-                {invoice.rejectedAt ? `on ${formatDate(invoice.rejectedAt)}` : ""} {invoice.rejectionReason}
-              </AlertDescription>
-            </Alert>
-          ) : null}
+          <StatusDetails invoice={invoice} />
           <section>
             <header className="flex items-center justify-between gap-4 text-gray-600">
               <h3 className="text-md uppercase">Invoice details</h3>
