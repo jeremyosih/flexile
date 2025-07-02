@@ -40,7 +40,7 @@ class CompanyWorkerMailer < ApplicationMailer
 
   def invoice_rejected(invoice_id:, reason: nil)
     @reason = reason
-    # Use find() to raise RecordNotFound - invoices can't be deleted at this state, so exceptions catch bugs
+    # Invoice is in REJECTED state (non-deletable) when mailer is called, so exceptions indicate bugs/infrastructure issues.
     @invoice = Invoice.alive.find(invoice_id)
     return unless @invoice.rejected?
     mail(to: @invoice.user.email, reply_to: @invoice.company.email,
