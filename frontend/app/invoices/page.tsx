@@ -209,7 +209,6 @@ export default function InvoicesPage() {
         "numeric",
       ),
       columnHelper.accessor((row) => statusNames[row.status], {
-        id: "status",
         header: "Status",
         cell: (info) => (
           <div className="relative z-1">
@@ -274,7 +273,7 @@ export default function InvoicesPage() {
     data,
     getRowId: (invoice) => invoice.id,
     initialState: {
-      sorting: [{ id: user.roles.administrator ? "actions" : "invoiceDate", desc: true }],
+      sorting: [{ id: user.roles.administrator ? "Status" : "invoiceDate", desc: !user.roles.worker }],
       columnFilters: user.roles.administrator ? [{ id: "Status", value: ["Awaiting approval", "Failed"] }] : [],
     },
     getSortedRowModel: getSortedRowModel(),
