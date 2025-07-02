@@ -273,7 +273,7 @@ export default function InvoicesPage() {
     data,
     getRowId: (invoice) => invoice.id,
     initialState: {
-      sorting: [{ id: user.roles.administrator ? "Status" : "invoiceDate", desc: !user.roles.worker }],
+      sorting: [{ id: user.roles.administrator ? "Status" : "invoiceDate", desc: !user.roles.administrator }],
       columnFilters: user.roles.administrator ? [{ id: "Status", value: ["Awaiting approval", "Failed"] }] : [],
     },
     getSortedRowModel: getSortedRowModel(),
@@ -662,7 +662,7 @@ const QuickInvoicesSection = () => {
     if (equityAllocation?.equityPercentage) {
       form.setValue("invoiceEquityPercent", equityAllocation.equityPercentage);
     }
-  }, [equityAllocation]);
+  }, [equityAllocation, form]);
 
   return (
     <Card className={canSubmitInvoices ? "" : "opacity-50"}>
