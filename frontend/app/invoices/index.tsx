@@ -259,7 +259,7 @@ export const DeleteModal = ({
             accept: "json",
             assertOk: true,
           });
-        })
+        }),
       );
     },
     onSuccess: () => {

@@ -19,7 +19,10 @@ class Invoice < ApplicationRecord
   RECEIVED = "received"
   APPROVED = "approved"
   REJECTED = "rejected"
+  PROCESSING = "processing"
   PAYMENT_PENDING = "payment_pending"
+  PAID = "paid"
+  FAILED = "failed"
 
   READ_ONLY_STATES = [APPROVED, PAYMENT_PENDING, PROCESSING, PAID, FAILED]
   EDITABLE_STATES = [RECEIVED, REJECTED]
@@ -27,6 +30,8 @@ class Invoice < ApplicationRecord
   COMPANY_PENDING_STATES = [RECEIVED, PROCESSING, APPROVED, FAILED]
   PAID_OR_PAYING_STATES = [PAYMENT_PENDING, PROCESSING, PAID]
   DELETABLE_STATES = [RECEIVED, APPROVED]
+  # Statuses that deleted invoices cannot have (active business processes)
+  ACTIVE_ONLY_STATUSES = [PROCESSING, PAYMENT_PENDING, PAID, FAILED]
   ALL_STATES = READ_ONLY_STATES + EDITABLE_STATES
 
   BASE_FLEXILE_FEE_CENTS = 50
@@ -87,11 +92,12 @@ class Invoice < ApplicationRecord
   }, on: :create
   validate :total_must_be_a_sum_of_cash_and_equity
   validate :min_equity_less_than_max_equity
+  validate :deleted_invoices_cannot_have_active_only_status
 
-  # Note: .alive calls are explicit safety filters, not redundant - any invoice status could technically be deleted
+  # Note: .alive calls removed from scopes that query ACTIVE_ONLY_STATUSES (validation prevents deleted invoices from having these)
   scope :pending, -> { alive.where(status: COMPANY_PENDING_STATES) }
-  scope :processing, -> { alive.where(status: PROCESSING) }
-  scope :mid_payment, -> { alive.where(status: [PROCESSING, PAYMENT_PENDING]) }
+  scope :processing, -> { where(status: PROCESSING) }
+  scope :mid_payment, -> { where(status: [PROCESSING, PAYMENT_PENDING]) }
   scope :approved, lambda {
     alive.where(status: APPROVED).
       joins(:company).
@@ -102,7 +108,7 @@ class Invoice < ApplicationRecord
       joins(:company).
       where("invoice_approvals_count < companies.required_invoice_approval_count")
   }
-  scope :paid, -> { alive.where(status: PAID) }
+  scope :paid, -> { where(status: PAID) }
   scope :received, -> { alive.where(status: RECEIVED) }
   scope :not_pending_acceptance, -> do
     created_by_user = alive.where("created_by_id = user_id")
@@ -118,12 +124,12 @@ class Invoice < ApplicationRecord
       where.missing(:consolidated_invoices_invoices)
   end
   scope :for_tax_year, ->(tax_year) {
-    alive.paid.joins(:company).
+    paid.joins(:company).
       where("invoice_approvals_count >= companies.required_invoice_approval_count").
       where("EXTRACT(year from invoices.paid_at) = ?", tax_year)
   }
   scope :paid_or_mid_payment, -> {
-    alive.where(status: PAID_OR_PAYING_STATES)
+    where(status: PAID_OR_PAYING_STATES)
   }
   scope :unique_contractors_count, -> { alive.select(:user_id).distinct.count }
 
@@ -262,5 +268,13 @@ class Invoice < ApplicationRecord
       return if min_allowed_equity_percentage <= max_allowed_equity_percentage
 
       errors.add(:min_allowed_equity_percentage, "must be less than or equal to maximum allowed equity percentage")
+    end
+
+    def deleted_invoices_cannot_have_active_only_status
+      return unless deleted_at_changed? && deleted_at.present?
+
+      if status.in?(ACTIVE_ONLY_STATUSES)
+        errors.add(:status, "cannot be #{status} for deleted invoices")
+      end
     end
 end
