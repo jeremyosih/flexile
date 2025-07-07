@@ -63,6 +63,8 @@ import { CalendarDate, today, getLocalTimeZone } from "@internationalized/date";
 import { zodResolver } from "@hookform/resolvers/zod";
 
 import type { ActionConfig, ActionContext } from "@/components/actions/types";
+import { SelectionActions } from "@/components/actions/SelectionActions";
+import { ContextMenuActions } from "@/components/actions/ContextMenuActions";
 
 const statusNames = {
   received: "Awaiting approval",
@@ -414,10 +416,24 @@ export default function InvoicesPage() {
                   </Button>
                 ) : null
               }
-              entityActionConfig={actionConfig}
-              entityActionContext={actionContext}
-              onEntityAction={handleInvoiceAction}
-              useEntityContextMenu
+              selectionActions={(selectedRows) => (
+                <SelectionActions
+                  selectedItems={selectedRows}
+                  config={actionConfig}
+                  actionContext={actionContext}
+                  onAction={handleInvoiceAction}
+                />
+              )}
+              contextMenuContent={({ row, selectedRows, onClearSelection }) => (
+                <ContextMenuActions
+                  item={row}
+                  selectedItems={selectedRows}
+                  config={actionConfig}
+                  actionContext={actionContext}
+                  onAction={handleInvoiceAction}
+                  onClearSelection={onClearSelection}
+                />
+              )}
             />
           </>
         ) : (
