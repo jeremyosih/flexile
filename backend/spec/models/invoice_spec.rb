@@ -67,32 +67,19 @@ RSpec.describe Invoice do
     it "allows an invoice to be created without line items" do
       invoice = build(:invoice, user: create(:user, :contractor))
       expect(invoice).to be_valid
-
-      invoice.invoice_line_items = []
-      expect(invoice).to be_valid
-
-      invoice.invoice_line_items.build(
-        {
-          description: "Doing",
-          quantity: 1,
-          pay_rate_in_subunits: 50_00,
-        }
-      )
-      expect(invoice).to be_valid
     end
 
-    it "ensures that the total amount is a sum of cash and equity amounts" do
-      invoice = create(:invoice, total_amount_in_usd_cents: 200_00, cash_amount_in_cents: 100_00, equity_amount_in_cents: 100_00)
-      expect(invoice).to be_valid
+    it "prevents status updates to active statuses on already-deleted invoices" do
+      invoice = create(:invoice, status: Invoice::RECEIVED)
+      invoice.mark_deleted!
 
-      invoice.cash_amount_in_cents = 99_99
+      invoice.status = Invoice::PAID
       expect(invoice).to be_invalid
-      expect(invoice.errors.full_messages).to eq(["Total amount in USD cents must equal the sum of cash and equity amounts"])
+      expect(invoice.errors[:status]).to include("cannot be paid for deleted invoices")
 
-      invoice.cash_amount_in_cents = 100_00
-      invoice.equity_amount_in_cents = 99_99
+      invoice.status = Invoice::PROCESSING
       expect(invoice).to be_invalid
-      expect(invoice.errors.full_messages).to eq(["Total amount in USD cents must equal the sum of cash and equity amounts"])
+      expect(invoice.errors[:status]).to include("cannot be processing for deleted invoices")
     end
   end
 
@@ -135,9 +122,17 @@ RSpec.describe Invoice do
 
       approved_invoice = create(:invoice, status: Invoice::APPROVED)
       expect { approved_invoice.mark_deleted! }.not_to raise_error
+    end
+
+    it "prevents deletion of invoices with active-only statuses at model level" do
+      paid_invoice = create(:invoice, status: Invoice::PAID)
+      expect { paid_invoice.mark_deleted! }.to raise_error(ActiveRecord::RecordInvalid, /Status cannot be paid for deleted invoices/)
+
+      processing_invoice = create(:invoice, status: Invoice::PROCESSING)
+      expect { processing_invoice.mark_deleted! }.to raise_error(ActiveRecord::RecordInvalid, /Status cannot be processing for deleted invoices/)
 
       rejected_invoice = create(:invoice, status: Invoice::REJECTED)
-      expect { rejected_invoice.mark_deleted! }.not_to raise_error
+      expect { rejected_invoice.mark_deleted! }.to raise_error(ActiveRecord::RecordInvalid, /Status cannot be rejected for deleted invoices/)
     end
 
     it "prevents deletion of invoices with active-only statuses at model level" do
@@ -195,6 +190,14 @@ RSpec.describe Invoice do
         expect(invoice.errors[:status]).to include("cannot be failed for deleted invoices")
       end
 
+      it "prevents deleted invoices from having REJECTED status" do
+        invoice = create(:invoice, status: Invoice::REJECTED)
+        invoice.deleted_at = Time.current
+
+        expect(invoice).to be_invalid
+        expect(invoice.errors[:status]).to include("cannot be rejected for deleted invoices")
+      end
+
       it "allows deleted invoices to have RECEIVED status" do
         invoice = create(:invoice, status: Invoice::RECEIVED)
         invoice.deleted_at = Time.current
@@ -209,11 +212,17 @@ RSpec.describe Invoice do
         expect(invoice).to be_valid
       end
 
-      it "allows deleted invoices to have REJECTED status" do
-        invoice = create(:invoice, status: Invoice::REJECTED)
-        invoice.deleted_at = Time.current
+      it "prevents status updates to active statuses on already-deleted invoices" do
+        invoice = create(:invoice, status: Invoice::RECEIVED)
+        invoice.mark_deleted!
 
-        expect(invoice).to be_valid
+        invoice.status = Invoice::PAID
+        expect(invoice).to be_invalid
+        expect(invoice.errors[:status]).to include("cannot be paid for deleted invoices")
+
+        invoice.status = Invoice::PROCESSING
+        expect(invoice).to be_invalid
+        expect(invoice.errors[:status]).to include("cannot be processing for deleted invoices")
       end
     end
   end

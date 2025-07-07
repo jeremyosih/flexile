@@ -250,7 +250,6 @@ export const DeleteModal = ({
 
   const deleteInvoices = useMutation({
     mutationFn: async (params: { ids: string[] }) => {
-      // Use Promise.all to handle multiple individual deletions
       await Promise.all(
         params.ids.map(async (invoiceId) => {
           await request({

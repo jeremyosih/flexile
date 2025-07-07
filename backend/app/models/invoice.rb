@@ -30,8 +30,7 @@ class Invoice < ApplicationRecord
   COMPANY_PENDING_STATES = [RECEIVED, PROCESSING, APPROVED, FAILED]
   PAID_OR_PAYING_STATES = [PAYMENT_PENDING, PROCESSING, PAID]
   DELETABLE_STATES = [RECEIVED, APPROVED]
-  # Statuses that deleted invoices cannot have (active business processes)
-  ACTIVE_ONLY_STATUSES = [PROCESSING, PAYMENT_PENDING, PAID, FAILED]
+  ACTIVE_ONLY_STATUSES = [PROCESSING, PAYMENT_PENDING, PAID, FAILED, REJECTED]
   ALL_STATES = READ_ONLY_STATES + EDITABLE_STATES
 
   BASE_FLEXILE_FEE_CENTS = 50
@@ -94,7 +93,6 @@ class Invoice < ApplicationRecord
   validate :min_equity_less_than_max_equity
   validate :deleted_invoices_cannot_have_active_only_status
 
-  # Note: .alive calls removed from scopes that query ACTIVE_ONLY_STATUSES (validation prevents deleted invoices from having these)
   scope :pending, -> { alive.where(status: COMPANY_PENDING_STATES) }
   scope :processing, -> { where(status: PROCESSING) }
   scope :mid_payment, -> { where(status: [PROCESSING, PAYMENT_PENDING]) }
@@ -271,7 +269,7 @@ class Invoice < ApplicationRecord
     end
 
     def deleted_invoices_cannot_have_active_only_status
-      return unless deleted_at_changed? && deleted_at.present?
+      return unless deleted_at.present?
 
       if status.in?(ACTIVE_ONLY_STATUSES)
         errors.add(:status, "cannot be #{status} for deleted invoices")
