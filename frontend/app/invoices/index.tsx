@@ -10,7 +10,7 @@ import { useCurrentCompany, useCurrentUser } from "@/global";
 import type { RouterOutput } from "@/trpc";
 import { trpc } from "@/trpc/client";
 import { request } from "@/utils/request";
-import { approve_company_invoices_path, reject_company_invoices_path, company_invoices_path } from "@/utils/routes";
+import { approve_company_invoices_path, reject_company_invoices_path, company_invoice_path } from "@/utils/routes";
 import Link from "next/link";
 
 type Invoice = RouterOutput["invoices"]["list"][number] | RouterOutput["invoices"]["get"];
@@ -250,13 +250,17 @@ export const DeleteModal = ({
 
   const deleteInvoices = useMutation({
     mutationFn: async (params: { ids: string[] }) => {
-      await request({
-        method: "DELETE",
-        url: company_invoices_path(company.id),
-        accept: "json",
-        jsonData: params,
-        assertOk: true,
-      });
+      // Use Promise.all to handle multiple individual deletions
+      await Promise.all(
+        params.ids.map(async (invoiceId) => {
+          await request({
+            method: "DELETE",
+            url: company_invoice_path(company.id, invoiceId),
+            accept: "json",
+            assertOk: true,
+          });
+        })
+      );
     },
     onSuccess: () => {
       void utils.invoices.list.invalidate({ companyId: company.id });

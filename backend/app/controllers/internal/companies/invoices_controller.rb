@@ -4,7 +4,7 @@ class Internal::Companies::InvoicesController < Internal::Companies::BaseControl
   before_action :load_invoice!, only: [:edit, :update]
   before_action :authorize_invoices_for_rejection, only: [:reject]
   before_action :authorize_invoices_for_approval_and_pay, only: [:approve]
-  before_action :authorize_invoices_for_deletion, only: [:destroy]
+
 
   def new
     authorize Invoice
@@ -103,11 +103,10 @@ class Internal::Companies::InvoicesController < Internal::Companies::BaseControl
   def destroy
     authorize Invoice
 
-    DeleteManyInvoices.new(
-      company: Current.company,
-      deleted_by: Current.user,
-      invoice_ids: invoice_external_ids_for_deletion,
-    ).perform
+    invoice = Current.user.invoices.alive.find_by!(external_id: params[:id])
+    DeleteInvoice.new(invoice:, deleted_by: Current.user).perform
+
+    head :no_content
   end
 
   private
@@ -136,19 +135,7 @@ class Internal::Companies::InvoicesController < Internal::Companies::BaseControl
       end
     end
 
-    def authorize_invoices_for_deletion
-      all_invoices_belong_to_user = invoice_external_ids_for_deletion.all? do |invoice_external_id|
-        Current.user.invoices.alive.exists?(external_id: invoice_external_id)
-      end
 
-      unless all_invoices_belong_to_user
-        e404
-      end
-    end
-
-    def invoice_external_ids_for_deletion
-      params.require(:ids)
-    end
 
     def invoice_external_ids_for_rejection
       params.require(:ids)

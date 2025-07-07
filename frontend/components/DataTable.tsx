@@ -167,19 +167,6 @@ export default function DataTable<T extends RowData>({
   const selectedRows = table.getSelectedRowModel().rows.map((row) => row.original);
   const selectedRowCount = selectedRows.length;
 
-  const handleSelectAllChange = () => {
-    const isAllSelected = table.getIsAllRowsSelected();
-    const isSomeSelected = table.getIsSomeRowsSelected();
-
-    if (!isSomeSelected && !isAllSelected) {
-      table.toggleAllRowsSelected(true);
-    } else if (isSomeSelected && !isAllSelected) {
-      table.toggleAllRowsSelected(true);
-    } else if (isAllSelected) {
-      table.toggleAllRowsSelected(false);
-    }
-  };
-
   return (
     <div className="grid gap-4">
       {filterable || actions ? (
@@ -312,7 +299,7 @@ export default function DataTable<T extends RowData>({
                   <Checkbox
                     checked={table.getIsAllRowsSelected()}
                     aria-label="Select all"
-                    onCheckedChange={handleSelectAllChange}
+                    onCheckedChange={() => table.toggleAllRowsSelected()}
                     indeterminate={table.getIsSomeRowsSelected() && !table.getIsAllRowsSelected()}
                   />
                 </TableHead>

@@ -51,13 +51,12 @@ scope path: :internal, module: :internal do
       end
     end
     resources :equity_exercise_payments, only: :update
-    resources :invoices, except: [:index, :show, :destroy] do
+    resources :invoices, except: [:index, :show] do
       collection do
         patch :approve
         patch :reject
         get :export
         get :microdeposit_verification_details
-        delete :destroy
       end
     end
     resources :quickbooks, only: :update do
