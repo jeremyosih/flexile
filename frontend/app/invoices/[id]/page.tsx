@@ -130,8 +130,7 @@ export default function InvoicePage() {
                     open={deleteModalOpen}
                     onClose={() => setDeleteModalOpen(false)}
                     onDelete={() => router.push(`/invoices`)}
-                    ids={[invoice.id]}
-                    invoiceNumber={invoice.invoiceNumber}
+                    invoices={[invoice]}
                   />
                 </>
               ) : null}

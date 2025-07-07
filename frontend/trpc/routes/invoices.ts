@@ -462,7 +462,10 @@ export const invoicesRouter = createRouter({
       rejector: invoice.rejector && simpleUser(invoice.rejector),
       contractor: {
         ...pick(invoice.contractor, "payRateType"),
-        user: { complianceInfo: invoice.contractor.user.userComplianceInfos[0] },
+        user: {
+          id: invoice.contractor.user.externalId,
+          complianceInfo: invoice.contractor.user.userComplianceInfos[0],
+        },
       },
     };
   }),

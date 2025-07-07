@@ -499,8 +499,7 @@ export default function InvoicesPage() {
           setOpenModal(null);
           table.resetRowSelection();
         }}
-        ids={selectedDeletableInvoices.map((invoice) => invoice.id)}
-        invoiceNumber={selectedDeletableInvoices.length === 1 ? selectedDeletableInvoices[0]?.invoiceNumber : undefined}
+        invoices={selectedDeletableInvoices}
       />
     </MainLayout>
   );

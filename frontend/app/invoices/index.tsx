@@ -113,7 +113,7 @@ export function useIsDeletable() {
   return (invoice: Invoice) =>
     DELETABLE_INVOICE_STATES.includes(invoice.status) &&
     !invoice.requiresAcceptanceByPayee &&
-    user.id === ("id" in invoice.contractor.user ? invoice.contractor.user.id : "");
+    user.id === invoice.contractor.user.id;
 }
 
 export const useApproveInvoices = (onSuccess?: () => void) => {
@@ -233,11 +233,22 @@ export const RejectModal = ({
   );
 };
 
-export const useDeleteInvoices = (onSuccess?: () => void) => {
-  const utils = trpc.useUtils();
+export const DeleteModal = ({
+  open,
+  invoices,
+  onClose,
+  onDelete,
+}: {
+  open: boolean;
+  invoices: Invoice[];
+  onClose: () => void;
+  onDelete?: () => void;
+}) => {
   const company = useCurrentCompany();
+  const utils = trpc.useUtils();
+  const ids = invoices.map((invoice) => invoice.id);
 
-  return useMutation({
+  const deleteInvoices = useMutation({
     mutationFn: async (params: { ids: string[] }) => {
       await request({
         method: "DELETE",
@@ -248,31 +259,10 @@ export const useDeleteInvoices = (onSuccess?: () => void) => {
       });
     },
     onSuccess: () => {
-      setTimeout(() => {
-        void utils.invoices.list.invalidate({ companyId: company.id });
-        onSuccess?.();
-      }, 500);
+      void utils.invoices.list.invalidate({ companyId: company.id });
+      onDelete?.();
+      onClose();
     },
-  });
-};
-
-export const DeleteModal = ({
-  open,
-  ids,
-  invoiceNumber,
-  onClose,
-  onDelete,
-}: {
-  open: boolean;
-  ids: string[];
-  invoiceNumber?: string | undefined;
-  onClose: () => void;
-  onDelete?: () => void;
-}) => {
-  const invoiceNumberText = invoiceNumber || "";
-  const deleteInvoices = useDeleteInvoices(() => {
-    onDelete?.();
-    onClose();
   });
 
   return (
@@ -280,12 +270,12 @@ export const DeleteModal = ({
       <DialogContent>
         <DialogHeader>
           <DialogTitle>
-            Delete {ids.length > 1 ? `${ids.length} invoices` : `invoice "${invoiceNumberText}"`}?
+            Delete {invoices.length > 1 ? `${invoices.length} invoices` : `invoice "${invoices[0]?.invoiceNumber}"`}?
           </DialogTitle>
         </DialogHeader>
         <div className="grid gap-2">
           <p className="text-sm">
-            {ids.length > 1
+            {invoices.length > 1
               ? "These invoices will be cancelled and permanently deleted. They won't be payable or recoverable."
               : `This invoice will be cancelled and permanently deleted. It won't be payable or recoverable.`}
           </p>
