@@ -58,7 +58,7 @@ RSpec.describe "Invoice creation flow" do
       click_on "Send invoice"
       wait_for_ajax
 
-      invoice = Invoice.alive.last
+      invoice = Invoice.last
       expect(CreateInvoicePdfJob).to have_enqueued_sidekiq_job(invoice.id)
       invoice_line_item = invoice.invoice_line_items.last
       expect(invoice.invoice_number).to eq("INV-123")
