@@ -2,7 +2,7 @@
 
 import { ExclamationTriangleIcon } from "@heroicons/react/20/solid";
 import { InformationCircleIcon, PaperClipIcon, PencilIcon, XMarkIcon } from "@heroicons/react/24/outline";
-import { Trash2 } from "lucide-react";
+import { Trash2, CircleAlert } from "lucide-react";
 import { useMutation } from "@tanstack/react-query";
 import Link from "next/link";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
@@ -34,7 +34,6 @@ import {
   useIsDeletable,
 } from "..";
 import InvoiceStatus, { StatusDetails } from "../Status";
-import { CircleAlert } from "lucide-react";
 
 export default function InvoicePage() {
   const { id } = useParams<{ id: string }>();
