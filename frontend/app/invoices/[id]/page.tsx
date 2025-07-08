@@ -122,9 +122,9 @@ export default function InvoicePage() {
 
               {isDeletable(invoice) ? (
                 <>
-                  <Button variant="outline" onClick={() => setDeleteModalOpen(true)} className="group">
-                    <Trash2 className="group-hover:text-destructive size-4" />
-                    <span className="group-hover:text-destructive">Delete</span>
+                  <Button variant="outline" onClick={() => setDeleteModalOpen(true)} className="hover:text-destructive">
+                    <Trash2 className="size-4" />
+                    <span>Delete</span>
                   </Button>
                   <DeleteModal
                     open={deleteModalOpen}

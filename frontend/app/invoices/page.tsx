@@ -26,7 +26,6 @@ import {
   useIsPayable,
   useIsDeletable,
   DeleteModal,
-  AcceptPaymentButton,
 } from "@/app/invoices/index";
 import Status, { StatusDetails } from "@/app/invoices/Status";
 import DataTable, { createColumnHelper, useTable } from "@/components/DataTable";
@@ -232,7 +231,11 @@ export default function InvoicesPage() {
           }
 
           if (invoice.requiresAcceptanceByPayee && user.id === invoice.contractor.user.id) {
-            return <AcceptPaymentButton invoice={invoice} />;
+            return (
+              <Button size="small" asChild>
+                <Link href={`/invoices/${invoice.id}?accept=true`}>Accept payment</Link>
+              </Button>
+            );
           }
 
           return null;
@@ -507,10 +510,7 @@ export default function InvoicesPage() {
       />
       <DeleteModal
         open={openModal === "delete"}
-        onClose={() => {
-          setOpenModal(null);
-          table.resetRowSelection();
-        }}
+        onClose={() => setOpenModal(null)}
         onDelete={() => {
           setOpenModal(null);
           table.resetRowSelection();

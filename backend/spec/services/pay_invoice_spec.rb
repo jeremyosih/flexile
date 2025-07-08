@@ -51,8 +51,10 @@ RSpec.describe PayInvoice, :vcr do
     end
   end
 
-  it "raises an error when the invoice is not found" do
-    expect { described_class.new("abc") }.to raise_error(ActiveRecord::RecordNotFound)
+  it "fails initialization if the invoice is not found" do
+    expect do
+      described_class.new("abc")
+    end.to raise_error(ActiveRecord::RecordNotFound)
   end
 
   context "when payment method setup is incomplete for the company" do

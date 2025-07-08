@@ -8,7 +8,6 @@ import { companyStripeAccountsFactory } from "@test/factories/companyStripeAccou
 import { invoiceApprovalsFactory } from "@test/factories/invoiceApprovals";
 import { invoicesFactory } from "@test/factories/invoices";
 import { login } from "@test/helpers/auth";
-import { findRequiredTableRow } from "@test/helpers/matchers";
 import { expect, test, withinModal } from "@test/index";
 import { and, eq, exists, isNull, not } from "drizzle-orm";
 
@@ -333,15 +332,10 @@ test.describe("Invoices admin flow", () => {
 });
 
 test.describe("Invoices contractor flow", () => {
-  const setupCompanyAndContractor = async (isProjectBased = false) => {
-    const { company } = await companiesFactory.create({ isTrusted: true, requiredInvoiceApprovalCount: 2 });
-    const { administrator } = await companyAdministratorsFactory.create({ companyId: company.id });
-    const adminUser = await db.query.users.findFirst({ where: eq(users.id, administrator.userId) });
-    assert(adminUser !== undefined);
+  const setupCompanyAndContractor = async () => {
+    const { company, user: adminUser } = await setupCompany({ trusted: true });
 
-    const { companyContractor } = isProjectBased
-      ? await companyContractorsFactory.createProjectBased({ companyId: company.id })
-      : await companyContractorsFactory.create({ companyId: company.id });
+    const { companyContractor } = await companyContractorsFactory.create({ companyId: company.id });
 
     const contractorUser = await db.query.users.findFirst({
       where: eq(users.id, companyContractor.userId),
@@ -357,7 +351,7 @@ test.describe("Invoices contractor flow", () => {
 
   test.describe("deleting invoices", () => {
     test("handles invoice deletion scenarios comprehensively", async ({ page }) => {
-      const { company, companyContractor } = await setupCompanyAndContractor(false);
+      const { company, companyContractor } = await setupCompanyAndContractor();
 
       await invoicesFactory.create({
         companyId: company.id,
@@ -384,17 +378,13 @@ test.describe("Invoices contractor flow", () => {
 
       assert(contractorUser.legalName !== null);
 
-      const receivedInvoiceRow = await findRequiredTableRow(page, {
-        Status: "Awaiting approval",
-      });
+      const receivedInvoiceRow = page.getByRole("row").getByText("Awaiting approval").first();
       await receivedInvoiceRow.click({ button: "right" });
       await expect(page.getByRole("menuitem").filter({ hasText: "Delete" })).toBeVisible();
 
       await page.click("body");
 
-      const paidInvoiceRow = await findRequiredTableRow(page, {
-        Status: "Paid",
-      });
+      const paidInvoiceRow = page.getByRole("row").getByText("Paid");
       await paidInvoiceRow.click({ button: "right" });
       await expect(page.getByRole("menuitem").filter({ hasText: "Delete" })).not.toBeVisible();
 
@@ -402,11 +392,9 @@ test.describe("Invoices contractor flow", () => {
 
       await expect(page.locator("tbody tr")).toHaveCount(3);
 
-      const deletableInvoiceRow = await findRequiredTableRow(page, {
-        Status: "Awaiting approval",
-      });
-      await deletableInvoiceRow.getByRole("checkbox").check();
-      await page.getByRole("button", { name: "Delete" }).click();
+      const deletableInvoiceRow = page.getByRole("row").getByText("Awaiting approval").first();
+      await deletableInvoiceRow.click({ button: "right" });
+      await page.getByRole("menuitem", { name: "Delete" }).click();
       await page.getByRole("dialog").waitFor();
       await page.getByRole("button", { name: "Delete" }).click();
 

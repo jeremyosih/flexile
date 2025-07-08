@@ -30,7 +30,6 @@ class Invoice < ApplicationRecord
   COMPANY_PENDING_STATES = [RECEIVED, PROCESSING, APPROVED, FAILED]
   PAID_OR_PAYING_STATES = [PAYMENT_PENDING, PROCESSING, PAID]
   DELETABLE_STATES = [RECEIVED, APPROVED]
-  ACTIVE_ONLY_STATUSES = [PROCESSING, PAYMENT_PENDING, PAID, FAILED, REJECTED]
   ALL_STATES = READ_ONLY_STATES + EDITABLE_STATES
 
   BASE_FLEXILE_FEE_CENTS = 50
@@ -271,7 +270,7 @@ class Invoice < ApplicationRecord
     def deleted_invoices_cannot_have_active_only_status
       return unless deleted_at.present?
 
-      if status.in?(ACTIVE_ONLY_STATUSES)
+      if !status.in?(DELETABLE_STATES)
         errors.add(:status, "cannot be #{status} for deleted invoices")
       end
     end

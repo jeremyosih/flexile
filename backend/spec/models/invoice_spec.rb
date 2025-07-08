@@ -56,93 +56,6 @@ RSpec.describe Invoice do
         .allow_nil
     end
 
-    describe "fields that we auto-populate on create" do
-      subject { create(:invoice) }
-
-      it { is_expected.to validate_presence_of(:bill_from) }
-      it { is_expected.to validate_presence_of(:bill_to) }
-      it { is_expected.to validate_presence_of(:due_on) }
-    end
-
-    it "allows an invoice to be created without line items" do
-      invoice = build(:invoice, user: create(:user, :contractor))
-      expect(invoice).to be_valid
-    end
-
-    it "prevents status updates to active statuses on already-deleted invoices" do
-      invoice = create(:invoice, status: Invoice::RECEIVED)
-      invoice.mark_deleted!
-
-      invoice.status = Invoice::PAID
-      expect(invoice).to be_invalid
-      expect(invoice.errors[:status]).to include("cannot be paid for deleted invoices")
-
-      invoice.status = Invoice::PROCESSING
-      expect(invoice).to be_invalid
-      expect(invoice.errors[:status]).to include("cannot be processing for deleted invoices")
-    end
-  end
-
-  describe "callbacks" do
-    describe "on delete" do
-      let(:invoice) { create(:invoice) }
-
-      before do
-        create_list(:invoice_approval, 2, invoice:)
-        create(:invoice_line_item, invoice:)
-        create(:invoice_expense, invoice:)
-      end
-
-      it "preserves related records when invoice is soft deleted" do
-        expect do
-          invoice.mark_deleted!
-        end.to change { Invoice.alive.count }.by(-1)
-           .and change { Invoice.deleted.count }.by(1)
-           .and change { InvoiceApproval.count }.by(0)
-           .and change { InvoiceLineItem.count }.by(0)
-           .and change { InvoiceExpense.count }.by(0)
-      end
-    end
-  end
-
-  describe "deletion" do
-    it "allows deletion of RECEIVED invoices" do
-      invoice = create(:invoice, status: Invoice::RECEIVED)
-      expect { invoice.mark_deleted! }.not_to raise_error
-    end
-
-    it "allows deletion of APPROVED invoices" do
-      invoice = create(:invoice, status: Invoice::APPROVED)
-      expect { invoice.mark_deleted! }.not_to raise_error
-    end
-
-    it "allows deletion of invoices with deletable statuses at model level" do
-      received_invoice = create(:invoice, status: Invoice::RECEIVED)
-      expect { received_invoice.mark_deleted! }.not_to raise_error
-
-      approved_invoice = create(:invoice, status: Invoice::APPROVED)
-      expect { approved_invoice.mark_deleted! }.not_to raise_error
-    end
-
-    it "prevents deletion of invoices with active-only statuses at model level" do
-      paid_invoice = create(:invoice, status: Invoice::PAID)
-      expect { paid_invoice.mark_deleted! }.to raise_error(ActiveRecord::RecordInvalid, /Status cannot be paid for deleted invoices/)
-
-      processing_invoice = create(:invoice, status: Invoice::PROCESSING)
-      expect { processing_invoice.mark_deleted! }.to raise_error(ActiveRecord::RecordInvalid, /Status cannot be processing for deleted invoices/)
-
-      rejected_invoice = create(:invoice, status: Invoice::REJECTED)
-      expect { rejected_invoice.mark_deleted! }.to raise_error(ActiveRecord::RecordInvalid, /Status cannot be rejected for deleted invoices/)
-    end
-
-    it "prevents deletion of invoices with active-only statuses at model level" do
-      paid_invoice = create(:invoice, status: Invoice::PAID)
-      expect { paid_invoice.mark_deleted! }.to raise_error(ActiveRecord::RecordInvalid, /Status cannot be paid for deleted invoices/)
-
-      processing_invoice = create(:invoice, status: Invoice::PROCESSING)
-      expect { processing_invoice.mark_deleted! }.to raise_error(ActiveRecord::RecordInvalid, /Status cannot be processing for deleted invoices/)
-    end
-
     describe "allowed equity percentage range" do
       it "ensures that min allowed equity percentage is less than or equal to max allowed equity percentage" do
         invoice = build(:invoice, min_allowed_equity_percentage: 81, max_allowed_equity_percentage: 80)
@@ -157,73 +70,58 @@ RSpec.describe Invoice do
       end
     end
 
-    describe "deleted invoices cannot have active-only statuses" do
-      it "prevents deleted invoices from having PROCESSING status" do
-        invoice = create(:invoice, status: Invoice::PROCESSING)
-        invoice.deleted_at = Time.current
+    describe "fields that we auto-populate on create" do
+      subject { create(:invoice) }
 
-        expect(invoice).to be_invalid
-        expect(invoice.errors[:status]).to include("cannot be processing for deleted invoices")
+      it { is_expected.to validate_presence_of(:bill_from) }
+      it { is_expected.to validate_presence_of(:bill_to) }
+      it { is_expected.to validate_presence_of(:due_on) }
+    end
+
+    it "allows an invoice to be created without line items" do
+      invoice = build(:invoice, user: create(:user, :contractor))
+      expect(invoice).to be_valid
+
+      invoice.invoice_line_items = []
+      expect(invoice).to be_valid
+
+      invoice.invoice_line_items.build(
+        {
+          description: "Doing",
+          quantity: 1,
+          pay_rate_in_subunits: 50_00,
+        }
+      )
+      expect(invoice).to be_valid
+    end
+  end
+
+  describe "deletion" do
+    it "allows deletion of invoices with deletable statuses" do
+      [Invoice::RECEIVED, Invoice::APPROVED].each do |status|
+        invoice = create(:invoice, status: status)
+        expect { invoice.mark_deleted! }.not_to raise_error
       end
+    end
 
-      it "prevents deleted invoices from having PAYMENT_PENDING status" do
-        invoice = create(:invoice, status: Invoice::PAYMENT_PENDING)
-        invoice.deleted_at = Time.current
-
-        expect(invoice).to be_invalid
-        expect(invoice.errors[:status]).to include("cannot be payment_pending for deleted invoices")
+    it "prevents deletion of invoices with non-deletable statuses" do
+      [Invoice::PAID, Invoice::PROCESSING, Invoice::REJECTED, Invoice::PAYMENT_PENDING, Invoice::FAILED].each do |status|
+        invoice = create(:invoice, status: status)
+        expect { invoice.mark_deleted! }.to raise_error(ActiveRecord::RecordInvalid, /Status cannot be #{status} for deleted invoices/)
       end
+    end
 
-      it "prevents deleted invoices from having PAID status" do
-        invoice = create(:invoice, status: Invoice::PAID)
-        invoice.deleted_at = Time.current
+    it "prevents status updates to active statuses on already-deleted invoices" do
+      invoice = create(:invoice, status: Invoice::APPROVED)
+      invoice.mark_deleted!
 
-        expect(invoice).to be_invalid
-        expect(invoice.errors[:status]).to include("cannot be paid for deleted invoices")
-      end
+      invoice.status = Invoice::PAID
+      expect(invoice).to be_invalid
+      expect(invoice.errors[:status]).to include("cannot be paid for deleted invoices")
 
-      it "prevents deleted invoices from having FAILED status" do
-        invoice = create(:invoice, status: Invoice::FAILED)
-        invoice.deleted_at = Time.current
-
-        expect(invoice).to be_invalid
-        expect(invoice.errors[:status]).to include("cannot be failed for deleted invoices")
-      end
-
-      it "prevents deleted invoices from having REJECTED status" do
-        invoice = create(:invoice, status: Invoice::REJECTED)
-        invoice.deleted_at = Time.current
-
-        expect(invoice).to be_invalid
-        expect(invoice.errors[:status]).to include("cannot be rejected for deleted invoices")
-      end
-
-      it "allows deleted invoices to have RECEIVED status" do
-        invoice = create(:invoice, status: Invoice::RECEIVED)
-        invoice.deleted_at = Time.current
-
-        expect(invoice).to be_valid
-      end
-
-      it "allows deleted invoices to have APPROVED status" do
-        invoice = create(:invoice, status: Invoice::APPROVED)
-        invoice.deleted_at = Time.current
-
-        expect(invoice).to be_valid
-      end
-
-      it "prevents status updates to active statuses on already-deleted invoices" do
-        invoice = create(:invoice, status: Invoice::RECEIVED)
-        invoice.mark_deleted!
-
-        invoice.status = Invoice::PAID
-        expect(invoice).to be_invalid
-        expect(invoice.errors[:status]).to include("cannot be paid for deleted invoices")
-
-        invoice.status = Invoice::PROCESSING
-        expect(invoice).to be_invalid
-        expect(invoice.errors[:status]).to include("cannot be processing for deleted invoices")
-      end
+      invoice.status = Invoice::PROCESSING
+      expect(invoice).to be_invalid
+      expect(invoice.errors[:status]).to include("cannot be processing for deleted invoices")
     end
   end
 
@@ -440,28 +338,6 @@ RSpec.describe Invoice do
             invoice.update!(status: Invoice::REJECTED)
           end.to change { invoice.reload.invoice_approvals.count }.by(-2)
         end
-      end
-    end
-
-    describe "#destroy_content" do
-      let(:invoice) { create(:invoice) }
-
-      before do
-        create_list(:invoice_approval, 2, invoice:)
-        create(:invoice_line_item, invoice:)
-        create(:invoice_expense, invoice:)
-      end
-
-      it "preserves content when invoice is soft deleted" do
-        expect { invoice.mark_deleted! }.to_not change { InvoiceLineItem.count }
-        expect { invoice.mark_deleted! }.to_not change { InvoiceExpense.count }
-        expect { invoice.mark_deleted! }.to_not change { InvoiceApproval.count }
-      end
-
-      it "does not destroy content when invoice status changes (not deleted)" do
-        expect { invoice.update!(status: Invoice::APPROVED) }.to_not change { InvoiceLineItem.count }
-        expect { invoice.update!(status: Invoice::APPROVED) }.to_not change { InvoiceExpense.count }
-        expect { invoice.update!(status: Invoice::APPROVED) }.to_not change { InvoiceApproval.count }
       end
     end
 

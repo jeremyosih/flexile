@@ -11,7 +11,6 @@ import type { RouterOutput } from "@/trpc";
 import { trpc } from "@/trpc/client";
 import { request } from "@/utils/request";
 import { approve_company_invoices_path, reject_company_invoices_path, company_invoice_path } from "@/utils/routes";
-import Link from "next/link";
 
 type Invoice = RouterOutput["invoices"]["list"][number] | RouterOutput["invoices"]["get"];
 export const EDITABLE_INVOICE_STATES: Invoice["status"][] = ["received", "rejected"];
@@ -162,12 +161,6 @@ export const ApproveButton = ({ invoice, onApprove }: { invoice: Invoice; onAppr
     </MutationButton>
   );
 };
-
-export const AcceptPaymentButton = ({ invoice }: { invoice: Invoice }) => (
-  <Button size="small" asChild>
-    <Link href={`/invoices/${invoice.id}?accept=true`}>Accept payment</Link>
-  </Button>
-);
 
 export const useRejectInvoices = (onSuccess?: () => void) => {
   const utils = trpc.useUtils();

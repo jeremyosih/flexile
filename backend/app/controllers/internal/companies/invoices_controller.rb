@@ -5,7 +5,6 @@ class Internal::Companies::InvoicesController < Internal::Companies::BaseControl
   before_action :authorize_invoices_for_rejection, only: [:reject]
   before_action :authorize_invoices_for_approval_and_pay, only: [:approve]
 
-
   def new
     authorize Invoice
 
@@ -101,10 +100,9 @@ class Internal::Companies::InvoicesController < Internal::Companies::BaseControl
   end
 
   def destroy
-    authorize Invoice
-
     invoice = Current.user.invoices.alive.find_by!(external_id: params[:id])
-    DeleteInvoice.new(invoice:, deleted_by: Current.user).perform
+    authorize invoice
+    invoice.mark_deleted!
 
     head :no_content
   end
@@ -134,8 +132,6 @@ class Internal::Companies::InvoicesController < Internal::Companies::BaseControl
         e404
       end
     end
-
-
 
     def invoice_external_ids_for_rejection
       params.require(:ids)
