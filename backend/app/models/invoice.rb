@@ -19,10 +19,7 @@ class Invoice < ApplicationRecord
   RECEIVED = "received"
   APPROVED = "approved"
   REJECTED = "rejected"
-  PROCESSING = "processing"
   PAYMENT_PENDING = "payment_pending"
-  PAID = "paid"
-  FAILED = "failed"
 
   READ_ONLY_STATES = [APPROVED, PAYMENT_PENDING, PROCESSING, PAID, FAILED]
   EDITABLE_STATES = [RECEIVED, REJECTED]
