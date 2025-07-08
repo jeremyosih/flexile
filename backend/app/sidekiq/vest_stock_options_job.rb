@@ -6,7 +6,6 @@ class VestStockOptionsJob
 
   def perform(invoice_id)
     invoice = Invoice.find(invoice_id)
-
     return if invoice.equity_vested? || invoice.equity_amount_in_options <= 0
 
     user = invoice.user

@@ -11,6 +11,7 @@ import {
   SquarePen,
   Eye,
   Ban,
+  CircleAlert,
 } from "lucide-react";
 import { getFilteredRowModel, getSortedRowModel } from "@tanstack/react-table";
 import Link from "next/link";
