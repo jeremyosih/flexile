@@ -6,7 +6,7 @@ import { companyAdministratorsFactory } from "@test/factories/companyAdministrat
 import { usersFactory } from "@test/factories/users";
 import { login } from "@test/helpers/auth";
 import { mockDocuseal as mockDocusealHelper } from "@test/helpers/docuseal";
-import { fillDatePicker } from "@test/helpers";
+import { fillDatePicker, waitForSkeletonsToDisappear } from "@test/helpers";
 import { expect, type Page, test, withinModal } from "@test/index";
 import { addMonths, format } from "date-fns";
 import { desc, eq } from "drizzle-orm";
@@ -187,6 +187,7 @@ test.describe("New Contractor", () => {
     });
     await login(page, user);
     await page.goto("/people");
+    await waitForSkeletonsToDisappear(page);
     await page.getByRole("button", { name: "Invite contractor" }).click();
     await expect(page.getByLabel("Role")).toHaveValue("Hourly Role 1");
     await expect(page.getByLabel("Rate")).toHaveValue("100");
